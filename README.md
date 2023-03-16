@@ -1,1 +1,1 @@
-# cloud-sync
+# go-cloud-sync
