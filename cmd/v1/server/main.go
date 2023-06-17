@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
@@ -34,9 +33,8 @@ func main() {
 		}
 	}()
 
-	time.Sleep(time.Second * 10)
+	//Just endless cycle for now
+	for {
 
-	w.Stop()
-
-	fmt.Println("end")
+	}
 }
