@@ -5,7 +5,8 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	"github.com/lazybark/go-cloud-sync/pkg/watcher"
+	"github.com/lazybark/go-cloud-sync/pkg/server"
+	"github.com/lazybark/go-cloud-sync/pkg/storage/sqlitestorage"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	w := watcher.NewV1()
+	w := server.NewServerV1(sqlitestorage.NewSQLite(""))
 	w.Init(cfg.FS.Root, evc, erc)
 	w.Start()
 
