@@ -6,10 +6,12 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
+// Config stores while app config divided into separate structs
 type Config struct {
 	FS FilesystemConfig
 }
 
+// FilesystemConfig holds variables to config filesystem watcher and event processor
 type FilesystemConfig struct {
 	Root string
 }
@@ -19,6 +21,7 @@ type EnvVars struct {
 	RootPath string `arg:"-r, env:SYNC_ROOT_PATH" help:"Root directory for sync filesystem in"`
 }
 
+// MakeConfig creates Config struct out of ENV variables and/or CLI arguments
 func MakeConfig() (Config, error) {
 	var c Config
 	var e EnvVars
