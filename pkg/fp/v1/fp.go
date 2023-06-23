@@ -53,12 +53,12 @@ func (fp *FileProcessor) ProcessObject(obj fse.FSObject, checkHash bool) (fse.FS
 }
 
 func (fp *FileProcessor) EscapePath(path string) string {
-	path = strings.ReplaceAll(path, fp.root, "%ROOT_DIR%")
+	path = strings.ReplaceAll(path, fp.root, "?ROOT_DIR?")
 	return strings.ReplaceAll(path, string(filepath.Separator), fp.escSymbol)
 }
 
 func (fp *FileProcessor) UnEscapePath(path string) string {
-	path = strings.ReplaceAll(path, "%ROOT_DIR%", fp.root)
+	path = strings.ReplaceAll(path, "?ROOT_DIR?", fp.root)
 	return strings.ReplaceAll(path, fp.escSymbol, string(filepath.Separator))
 }
 

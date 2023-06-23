@@ -4,3 +4,4 @@ cmd/v1/server/certs
 cmd/v1/client/filesystem_root
 cmd/v1/client/certs
 .idea
+*.db

@@ -1,6 +1,7 @@
 package sqlitestorage
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -11,8 +12,10 @@ import (
 	gLogger "gorm.io/gorm/logger"
 )
 
-func NewSQLite(path string) (*SQLiteStorage, error) {
-	s := &SQLiteStorage{}
+func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
+	s := &SQLiteStorage{
+		escSymbol: escSymbol,
+	}
 
 	db, err := gorm.Open(sqlite.Open("fs_watcher.db"), &gorm.Config{Logger: gLogger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -32,7 +35,8 @@ func NewSQLite(path string) (*SQLiteStorage, error) {
 }
 
 type SQLiteStorage struct {
-	db *gorm.DB
+	db        *gorm.DB
+	escSymbol string
 }
 
 func (s *SQLiteStorage) CreateObject(obj fse.FSObject) error {
@@ -51,9 +55,38 @@ func (s *SQLiteStorage) CreateObject(obj fse.FSObject) error {
 	return nil
 }
 
-func (s *SQLiteStorage) RemoveObject(obj fse.FSObject) error {
-	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).Delete(&FSObject{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+func (s *SQLiteStorage) RemoveObject(obj fse.FSObject, recursive bool) error {
+	var o FSObject
+	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return err
+	}
+	if o.ID != 0 {
+		if err := s.db.Delete(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+	}
+	fmt.Println(`DELETE FROM fs_objects WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`)
+
+	if o.IsDir && recursive {
+		/*if err := s.db.Where("path LIKE %?%", obj.Path+s.escSymbol+obj.Name).Delete(&FSObject{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}*/
+		//s.db.Delete(&FSObject{}, "path LIKE ?", "%"+obj.Path+s.escSymbol+obj.Name+"%")
+		if err := s.db.Exec(`DELETE FROM fs_objects WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+		/*childrenList := strings.Split(obj.Path+s.escSymbol+obj.Name, s.escSymbol)
+		fmt.Println(childrenList)
+		var childrenPaths [][]string
+		for step := range childrenList {
+			childrenPaths = append(childrenPaths, childrenList[0:step])
+		}
+		for _, c := range childrenPaths {
+			fmt.Println(filepath.Join(c...))
+			if err := s.db.Where("path = ?", filepath.Join(c...)).Delete(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
+		}*/
 	}
 
 	return nil

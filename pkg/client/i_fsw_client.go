@@ -7,13 +7,13 @@ import (
 )
 
 type IFSWClient interface {
-	Init(root string, evc chan (fse.FSEvent), erc chan (error)) error
+	Init(evc chan (fse.FSEvent), erc chan (error)) error
 
 	Start() error
 
 	Stop() error
 }
 
-func NewClientV1(stor storage.IStorage) IFSWClient {
-	return v1.NewClient(stor)
+func NewClientV1(stor storage.IStorage, root string) IFSWClient {
+	return v1.NewClient(stor, root)
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/client"
@@ -24,14 +26,19 @@ import (
 func main() {
 	cfg, err := configs.MakeConfig()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	w := client.NewClientV1(sqlitestorage.NewSQLite(""))
-	w.Init(cfg.FS.Root, evc, erc)
+	sqstor, err := sqlitestorage.NewSQLite("", ",")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := client.NewClientV1(sqstor, filepath.Join(filepath.Split(cfg.FS.Root)))
+	w.Init(evc, erc)
 	w.Start()
 
 	go func() {

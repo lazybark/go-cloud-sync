@@ -8,7 +8,7 @@ type IStorage interface {
 	CreateObject(obj fse.FSObject) error
 
 	//RemoveObject removes the record about a filesystem object in database
-	RemoveObject(obj fse.FSObject) (err error)
+	RemoveObject(obj fse.FSObject, recursive bool) (err error)
 
 	//UpdateObject updates the record about a filesystem object in database
 	UpdateObject(obj fse.FSObject) error

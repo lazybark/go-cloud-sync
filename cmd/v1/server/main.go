@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
@@ -12,13 +13,18 @@ import (
 func main() {
 	cfg, err := configs.MakeConfig()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	w := server.NewServerV1(sqlitestorage.NewSQLite(""))
+	sqstor, err := sqlitestorage.NewSQLite("", ",")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := server.NewServerV1(sqstor)
 	w.Init(cfg.FS.Root, evc, erc)
 	w.Start()
 

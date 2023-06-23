@@ -121,3 +121,11 @@ func (fw *FSWatcher) filesystemWatcherRoutine() {
 	}
 	<-done
 }
+
+func (fw *FSWatcher) Add(dir string) error {
+	err := fw.w.Add(dir)
+	if err != nil {
+		fw.erc <- fmt.Errorf("[FSWATCHER][WATCH] fs watcher add failed: %w", err)
+	}
+	return nil
+}

@@ -14,4 +14,6 @@ type IFilesystemWatcher interface {
 	//Stop stops the watcher routine or returns an error. It also should close event & error channels,
 	//which means new Start() will need new Init() with new channels
 	Stop() error
+
+	Add(dir string) error
 }

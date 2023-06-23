@@ -7,7 +7,6 @@ type (
 		ID          uint   `gorm:"primaryKey"`
 		Name        string `gorm:"uniqueIndex:file"`
 		Path        string `gorm:"uniqueIndex:file"`
-		ParentID    uint
 		Hash        string
 		IsDir       bool
 		Owner       int

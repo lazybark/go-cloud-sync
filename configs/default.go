@@ -33,7 +33,7 @@ func MakeConfig() (Config, error) {
 	}
 
 	if e.RootPath == "" {
-		e.RootPath = "filesystem_root"
+		e.RootPath = `D:\filesystem_root`
 	}
 	fsc.Root = e.RootPath
 

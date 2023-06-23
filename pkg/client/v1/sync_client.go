@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 
+	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
@@ -28,30 +29,34 @@ type FSWClient struct {
 	root string
 
 	//stor is the storage watcher uses to store & process filesystem hashes
-	stor storage.IStorage
+	fp fp.Fileprocessor
 
 	link fselink.FSEClientLink
+
+	db storage.IStorage
 }
 
-func NewClient(stor storage.IStorage) *FSWClient {
-	s := &FSWClient{}
+func NewClient(db storage.IStorage, root string) *FSWClient {
+	s := &FSWClient{
+		db:   db,
+		root: root,
+	}
 	s.evc = make(chan (fse.FSEvent))
 	s.erc = make(chan (error))
 
 	s.w = watcher.NewWatcher()
-	s.stor = stor
+	s.fp = fp.NewFPv1(",", root)
 	s.link = fselink.NewClient()
 
 	return s
 }
 
 // Init sets initial config to the Watcher
-func (s *FSWClient) Init(root string, evc chan (fse.FSEvent), erc chan (error)) error {
-	s.root = root
+func (s *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error)) error {
 	s.extEvChannel = evc
 	s.extErc = erc
 
-	err := s.w.Init(root, s.evc, s.erc)
+	err := s.w.Init(s.root, s.evc, s.erc)
 	if err != nil {
 		return fmt.Errorf("[FSWATCHER][INIT] can not start watcher: %w", err)
 	}
@@ -67,6 +72,7 @@ func (s *FSWClient) Init(root string, evc chan (fse.FSEvent), erc chan (error)) 
 // Start launches the filesystem watcher routine. You need to call Init() before.
 func (s *FSWClient) Start() error {
 	go s.watcherRoutine()
+	//go s.rescanRoutine()
 	return s.w.Start()
 }
 
@@ -97,20 +103,37 @@ func (s *FSWClient) watcherRoutine() {
 				}
 
 				//Process event with storage
-				if event.Action == fse.Create {
-					_, err := s.stor.CreateObject(event.Object)
+				if event.Action == fse.Create || event.Action == fse.Write {
+					obj, err := s.fp.ProcessObject(event.Object, true)
 					if err != nil {
 						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][%s] processing error: %w", event.Action.String(), err)
+					}
+					//We skip objects that have no access to avoid syncing temp junks of apps
+					if obj.Hash == "" && !obj.IsDir {
+						continue
+					}
+					err = s.db.AddOrUpdateObject(obj)
+					if err != nil {
+						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][%s] processing error: %w", event.Action.String(), err)
+					}
+					if event.Action == fse.Create && obj.IsDir {
+						err = s.w.Add(event.Object.Path)
+						if err != nil {
+							s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][%s] adding watcher failed: %w", event.Action.String(), err)
+						}
 					}
 				} else if event.Action == fse.Remove {
-					err := s.stor.RemoveObject(event.Object)
+					obj := event.Object
+					path, name, err := s.fp.ConvertPathName(obj)
 					if err != nil {
-						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][%s] processing error: %w", event.Action.String(), err)
+						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][ConvertPathName] processing error: %w", err)
 					}
-				} else if event.Action == fse.Write {
-					_, err := s.stor.AddOrUpdateObject(event.Object)
+					obj.Path = path
+					obj.Name = name
+
+					err = s.db.RemoveObject(obj, true)
 					if err != nil {
-						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][%s] processing error: %w", event.Action.String(), err)
+						s.extErc <- fmt.Errorf("[FSWATCHER][WATCH][RemoveObject] processing error: %w", err)
 					}
 				}
 				//Sent event to external code
@@ -133,3 +156,19 @@ func (s *FSWClient) watcherRoutine() {
 
 	<-done
 }
+
+func (s *FSWClient) Add(dir string) error {
+	err := s.w.Add(dir)
+	if err != nil {
+		s.erc <- fmt.Errorf("[FSWATCHER][WATCH] fs watcher add failed: %w", err)
+	}
+	return nil
+}
+
+/*
+// rescanRoutine checks rescanBuffer and rescans every object once per a minute.
+// Object that was scanned is being deleted from the buffer.
+func (c *FSWClient) rescanRoutine() {
+
+}
+*/

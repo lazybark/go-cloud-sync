@@ -3,19 +3,18 @@ package fse
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // FSObject represents and filesystem object that can be watched by IFilesystemWatcher
 type FSObject struct {
-	//Path holds full filesystem path from root to the file itself
-	Path string
-
-	//IsDir = true points that the object is a directory
-	IsDir bool
-
-	//Hash describes the object internals. Objects with same hash + type should be considered
-	//identical.
-	Hash string
+	Path      string
+	Name      string
+	IsDir     bool
+	Hash      string
+	Ext       string
+	Size      int64
+	UpdatedAt time.Time
 }
 
 func (o FSObject) JSON() ([]byte, error) {
