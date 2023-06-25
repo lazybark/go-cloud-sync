@@ -39,6 +39,11 @@ type SQLiteStorage struct {
 	escSymbol string
 }
 
+func (s *SQLiteStorage) RefillDatabase(objs []fse.FSObject) error {
+	//return s.db.Create(&objs).Error
+	return nil
+}
+
 func (s *SQLiteStorage) CreateObject(obj fse.FSObject) error {
 	o := FSObject{
 		Path:        obj.Path,

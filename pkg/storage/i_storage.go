@@ -16,4 +16,6 @@ type IStorage interface {
 	//AddOrUpdateObject creates a record about a filesystem object in database or updates if
 	//record exists. Returns success = true if any of actions were successful
 	AddOrUpdateObject(obj fse.FSObject) error
+
+	RefillDatabase(objs []fse.FSObject) error
 }
