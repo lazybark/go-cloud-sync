@@ -8,13 +8,14 @@ import (
 
 // FSObject represents and filesystem object that can be watched by IFilesystemWatcher
 type FSObject struct {
-	Path      string
-	Name      string
-	IsDir     bool
-	Hash      string
-	Ext       string
-	Size      int64
-	UpdatedAt time.Time
+	Path        string
+	Name        string
+	IsDir       bool
+	Hash        string
+	Ext         string
+	Size        int64
+	UpdatedAt   time.Time
+	IsProcessed bool `json:"-"`
 }
 
 func (o FSObject) JSON() ([]byte, error) {

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,82 @@ func NewFP(escSymbol, root string) *FileProcessor {
 	return &fp
 }
 
+func (f *FileProcessor) GetPathUnescaped(obj fse.FSObject) string {
+	return filepath.Join(f.UnEscapePath(obj.Path), obj.Name)
+}
+
+// ProcessDirectory returns full list of objects in the directory recursively.
+// Unavailable for hashing are skipped.
+func (f *FileProcessor) ProcessDirectory(path string) (objs []fse.FSObject, err error) {
+	unescaped := f.UnEscapePath(path)
+
+	ok := f.checkPathConsistency(unescaped)
+	if !ok {
+		err = fmt.Errorf("[ProcessDirectory] provided path is not valid or consistent")
+		return
+	}
+	objs, err = f.scanDir(path)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (fs *FileProcessor) scanDir(path string) (objs []fse.FSObject, err error) {
+	contents, err := ioutil.ReadDir(path)
+	if err != nil {
+		return
+	}
+	var o fse.FSObject
+	var fullPath string
+	var objs1 []fse.FSObject
+	for _, item := range contents {
+		fullPath = filepath.Join(path, item.Name())
+		o = fse.FSObject{Path: fullPath}
+		o, err = fs.ProcessObject(o, true)
+		if err != nil {
+			return
+		}
+		objs = append(objs, o)
+		//Recursively scan sub dirs
+		if o.IsDir {
+			objs1, err = fs.scanDir(fullPath)
+			if err != nil {
+				return
+			}
+			objs = append(objs, objs1...)
+		}
+	}
+	return
+}
+
+func (f *FileProcessor) checkPathConsistency(path string) bool {
+	// Check if path belongs to root dir
+	if ok := strings.Contains(path, f.root); !ok {
+		return ok
+	}
+	// Only absolute paths are available
+	if ok := filepath.IsAbs(path); !ok {
+		return ok
+	}
+	// Must exist and be a directory
+	dir, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	if !dir.IsDir() {
+		return false
+	}
+
+	return true
+}
+
 func (fp *FileProcessor) ProcessObject(obj fse.FSObject, checkHash bool) (fse.FSObject, error) {
+	if obj.IsProcessed {
+		return obj, nil
+	}
+
 	var err error
 	oInfo, err := os.Stat(obj.Path)
 	if err != nil {
@@ -48,6 +124,7 @@ func (fp *FileProcessor) ProcessObject(obj fse.FSObject, checkHash bool) (fse.FS
 	if err != nil {
 		return obj, nil
 	}
+	obj.IsProcessed = true
 
 	return obj, nil
 }

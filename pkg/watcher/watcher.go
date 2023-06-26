@@ -129,3 +129,14 @@ func (fw *FSWatcher) Add(dir string) error {
 	}
 	return nil
 }
+
+func (fw *FSWatcher) RemoveIfExists(dir string) {
+	l := fw.w.WatchList()
+	//Slice here is relative slower than a map would be. But keeping a map in memory with doubles
+	//of WatchList() is useless.
+	for _, d := range l {
+		if d == dir {
+			fw.w.Remove(d)
+		}
+	}
+}

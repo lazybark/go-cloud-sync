@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
@@ -115,47 +116,53 @@ func (s *FSWServer) watcherRoutine() {
 				continue
 			}
 			if m.Type == fselink.MessageTypeAuthReq {
-				if !s.checkCredentials() {
-					aa, err := json.Marshal(fselink.MessageAuthAnswer{Success: false, AuthKey: "", ErrorCode: fselink.ErrorCodeWrongCreds, Error: fselink.ErrorCodeWrongCreds.String()})
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
-					b, err := json.Marshal(fselink.ExchangeMessage{Type: fselink.MessageTypeAuthAns, Payload: aa})
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
-					_, err = mess.Conn().SendByte(b)
+				if !s.checkCredentials("", "") {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrCodeWrongCreds)
 					if err != nil {
 						s.extErc <- err
 						continue
 					}
 					continue
 				}
-				aa, err := json.Marshal(fselink.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"})
+				err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"}, fselink.MessageTypeAuthAns)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
-				b, err := json.Marshal(fselink.ExchangeMessage{Type: fselink.MessageTypeAuthAns, Payload: aa})
-				if err != nil {
-					s.extErc <- err
+			} else if m.Type == fselink.MessageTypeEvent {
+				if !s.checkToken(m.AuthKey, m.AuthKey) {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
+					if err != nil {
+						s.extErc <- err
+						continue
+					}
 					continue
 				}
-				_, err = mess.Conn().SendByte(b)
-				if err != nil {
-					s.extErc <- err
-					continue
-				}
-			}
-			if m.Type == fselink.MessageTypeEvent {
 				err := json.Unmarshal(m.Payload, &ev)
 				if err != nil {
 					s.extErc <- err
 				} else {
 					//s.extEvc <- ev
 					fmt.Println(ev)
+				}
+			} else if m.Type == fselink.MessageTypeFullSyncRequest {
+				if !s.checkToken(m.AuthKey, m.AuthKey) {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
+					if err != nil {
+						s.extErc <- err
+						continue
+					}
+					continue
+				}
+				l := []fse.FSObject{
+					{Path: `?ROOT_DIR?`, Name: "New folder (4)", Hash: "", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: true},
+					{Path: `?ROOT_DIR?`, Name: "SOME WEIRD FOLDER", Hash: "", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: true},
+					{Path: `?ROOT_DIR?,SOME WEIRD FOLDER`, Name: "file.jpg", Hash: "asdfghfdsfgh", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: false},
+				}
+				err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageFullSyncReply{Success: true, Objects: l}, fselink.MessageTypeFullSyncReply)
+				if err != nil {
+					s.extErc <- err
+					continue
 				}
 			}
 		case err, ok := <-s.srvErrChan:
@@ -174,6 +181,10 @@ func (s *FSWServer) watcherRoutine() {
 
 }
 
-func (s *FSWServer) checkCredentials() bool {
+func (s *FSWServer) checkCredentials(log, pwd string) bool {
 	return true
+}
+
+func (s *FSWServer) checkToken(t string, ct string) bool {
+	return t == ct
 }

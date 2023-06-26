@@ -39,13 +39,21 @@ func (c *FSWClient) GetDiffListWithServer(locObjs []fse.FSObject, srvObjs []fse.
 	for _, serv := range srvObjs {
 		key = filepath.Join(serv.Path, serv.Name)
 		if local, ok := temp[key]; ok {
-			if local.Hash != serv.Hash {
+			if local.Hash != serv.Hash && !local.IsDir {
 				if serv.UpdatedAt.After(local.UpdatedAt) {
 					dld = append(dld, local)
 				}
 				//We ask server to recieve file when we have newer of time-equal copy.
 				//This conflict should be solved by server alone. Client always keeps local copy
 				//over server copy.
+				if local.UpdatedAt.After(serv.UpdatedAt) || local.UpdatedAt.Equal(serv.UpdatedAt) {
+					updtd = append(updtd, local)
+				}
+			}
+			if local.IsDir {
+				if serv.UpdatedAt.After(local.UpdatedAt) {
+					dld = append(dld, local)
+				}
 				if local.UpdatedAt.After(serv.UpdatedAt) || local.UpdatedAt.Equal(serv.UpdatedAt) {
 					updtd = append(updtd, local)
 				}

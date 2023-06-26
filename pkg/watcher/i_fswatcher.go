@@ -16,4 +16,6 @@ type IFilesystemWatcher interface {
 	Stop() error
 
 	Add(dir string) error
+
+	RemoveIfExists(dir string)
 }

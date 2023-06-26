@@ -8,6 +8,8 @@ import (
 type Fileprocessor interface {
 	ProcessObject(obj fse.FSObject, checkHash bool) (fse.FSObject, error)
 	ConvertPathName(obj fse.FSObject) (dir, name string, err error)
+	ProcessDirectory(path string) ([]fse.FSObject, error)
+	GetPathUnescaped(obj fse.FSObject) string
 }
 
 func NewFPv1(escSymbol, root string) Fileprocessor {
