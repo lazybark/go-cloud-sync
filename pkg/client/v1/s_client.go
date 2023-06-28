@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
@@ -41,19 +42,23 @@ type ClientConfig struct {
 	Root string
 }
 
-func NewClient(db storage.IStorage, root string) *FSWClient {
-	s := &FSWClient{
+func NewClient(db storage.IStorage, cacheDir, root string) *FSWClient {
+	c := &FSWClient{
 		db:  db,
 		cfg: ClientConfig{Root: root},
 	}
-	s.evc = make(chan (fse.FSEvent))
-	s.erc = make(chan (error))
+	c.evc = make(chan (fse.FSEvent))
+	c.erc = make(chan (error))
 
-	s.w = watcher.NewWatcher()
-	s.fp = fp.NewFPv1(",", root)
-	s.link = fselink.NewClient()
+	c.w = watcher.NewWatcher()
+	c.fp = fp.NewFPv1(",", root)
+	link, err := fselink.NewClient(cacheDir, root)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.link = link
 
-	return s
+	return c
 }
 
 // Init sets initial config to the Watcher

@@ -8,7 +8,6 @@ import (
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/client"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	"github.com/lazybark/go-cloud-sync/pkg/storage/sqlitestorage"
 )
 
 //Basic client algorithm:
@@ -32,12 +31,12 @@ func main() {
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	sqstor, err := sqlitestorage.NewSQLite("", ",")
+	/*sqstor, err := sqlitestorage.NewSQLite("", ",")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	w := client.NewClientV1(sqstor, filepath.Join(filepath.Split(cfg.FS.Root)))
+	*/
+	w := client.NewClientV1(nil, `D:\client_cache`, filepath.Join(filepath.Split(cfg.FS.Root)))
 	w.Init(evc, erc)
 	w.Start()
 

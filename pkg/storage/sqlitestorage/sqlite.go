@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/storage"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -14,10 +14,11 @@ import (
 
 func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
 	s := &SQLiteStorage{
-		escSymbol: escSymbol,
+		escSymbol:  escSymbol,
+		rootSymbol: "?ROOT_DIR?",
 	}
 
-	db, err := gorm.Open(sqlite.Open("fs_watcher.db"), &gorm.Config{Logger: gLogger.New(
+	db, err := gorm.Open(sqlite.Open("fs_watcher_server.db"), &gorm.Config{Logger: gLogger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		gLogger.Config{LogLevel: gLogger.Silent},
 	)})
@@ -26,7 +27,7 @@ func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
 	}
 	s.db = db
 
-	err = s.db.AutoMigrate(FSObject{})
+	err = s.db.AutoMigrate(storage.FSObjectStored{})
 	if err != nil {
 		return nil, err
 	}
@@ -35,32 +36,63 @@ func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
 }
 
 type SQLiteStorage struct {
-	db        *gorm.DB
-	escSymbol string
+	db         *gorm.DB
+	escSymbol  string
+	rootSymbol string
 }
 
-func (s *SQLiteStorage) RefillDatabase(objs []fse.FSObject) error {
-	//return s.db.Create(&objs).Error
-	return nil
+func (s *SQLiteStorage) RefillDatabase(objs []storage.FSObjectStored) error {
+	err := s.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&storage.FSObjectStored{}).Error
+	if err != nil {
+		return err
+	}
+	/*
+		var recs []FSObject
+		var owner int
+		for _, o := range objs {
+			fmt.Println(o)
+			owner, err = ExtractOwnerFromPath(o.Path, s.escSymbol)
+			if err != nil {
+				return err
+			}
+			if owner == 0 {
+				continue
+			}
+			//We don't care about files in server's root - they don't belong to anyone
+			if o.Path == s.rootSymbol {
+				continue
+			}
+
+			recs = append(recs, ConvertObjectsToDB(o, owner))
+		}
+
+		fmt.Println(recs)*/
+
+	return s.db.Create(&objs).Error
 }
 
-func (s *SQLiteStorage) CreateObject(obj fse.FSObject) error {
-	o := FSObject{
+/*
+func ConvertObjectsToDB(obj fse.FSObject, owner int) FSObject {
+	return FSObject{
 		Path:        obj.Path,
 		Name:        obj.Name,
 		IsDir:       obj.IsDir,
 		Hash:        obj.Hash,
+		Owner:       owner,
 		Ext:         obj.Ext,
 		Size:        obj.Size,
 		FSUpdatedAt: obj.UpdatedAt,
 	}
-	if err := s.db.Create(&o).Error; err != nil {
+}*/
+
+func (s *SQLiteStorage) CreateObject(obj storage.FSObjectStored) error {
+	if err := s.db.Create(&obj).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *SQLiteStorage) RemoveObject(obj fse.FSObject, recursive bool) error {
+func (s *SQLiteStorage) RemoveObject(obj storage.FSObjectStored, recursive bool) error {
 	var o FSObject
 	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return err
@@ -97,11 +129,11 @@ func (s *SQLiteStorage) RemoveObject(obj fse.FSObject, recursive bool) error {
 	return nil
 }
 
-func (s *SQLiteStorage) UpdateObject(obj fse.FSObject) error {
+func (s *SQLiteStorage) UpdateObject(obj storage.FSObjectStored) error {
 	return s.AddOrUpdateObject(obj)
 }
 
-func (s *SQLiteStorage) AddOrUpdateObject(obj fse.FSObject) error {
+func (s *SQLiteStorage) AddOrUpdateObject(obj storage.FSObjectStored) error {
 	o := FSObject{}
 	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return err
@@ -122,4 +154,11 @@ func (s *SQLiteStorage) AddOrUpdateObject(obj fse.FSObject) error {
 	}
 
 	return nil
+}
+
+func (s *SQLiteStorage) GetUsersObjects(owner string) ([]storage.FSObjectStored, error) {
+	var objs []storage.FSObjectStored
+	err := s.db.Where("owner = ?", owner).Find(&objs).Error
+
+	return objs, err
 }

@@ -14,6 +14,6 @@ type IFSWClient interface {
 	Stop() error
 }
 
-func NewClientV1(stor storage.IStorage, root string) IFSWClient {
-	return v1.NewClient(stor, root)
+func NewClientV1(stor storage.IStorage, cacheDir, root string) IFSWClient {
+	return v1.NewClient(stor, cacheDir, root)
 }

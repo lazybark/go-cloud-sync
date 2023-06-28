@@ -7,14 +7,8 @@ import (
 )
 
 type IFSWServer interface {
-	//Init sets initial parameters for fs watcher
-	Init(root string, evc chan (fse.FSEvent), erc chan (error)) error
-
-	//Start launches the watcher routine or returns an error
+	Init(root, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error
 	Start() error
-
-	//Stop stops the watcher routine or returns an error. It also should close event & error channels,
-	//which means new Start() will need new Init() with new channels
 	Stop() error
 }
 

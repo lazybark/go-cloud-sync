@@ -14,8 +14,14 @@ type SyncReciever interface {
 }
 
 type SyncClient struct {
-	akey string
-	c    *client.Client
+	akey           string
+	cacheDir       string
+	filesystemRoot string
+	serverAddr     string
+	serverPort     int
+	login          string
+	pwd            string
+	c              *client.Client
 }
 
 type Credentials struct {
@@ -35,7 +41,6 @@ type MessageAuthAnswer struct {
 }
 
 type MessageError struct {
-	Success   bool
 	Error     string
 	ErrorCode int
 }
@@ -45,13 +50,44 @@ type MessageFullSyncReply struct {
 	Objects []fse.FSObject
 }
 
+type MessageGetFile struct {
+	Object fse.FSObject
+}
+
+type MessageFilePart struct {
+	Payload []byte
+}
+
 type ExchangeMessageType int
 
 const (
-	MessageTypeAuthReq ExchangeMessageType = iota + 1
+	message_type_start ExchangeMessageType = iota
+
+	MessageTypeAuthReq
 	MessageTypeAuthAns
 	MessageTypeEvent
 	MessageTypeFullSyncRequest
 	MessageTypeFullSyncReply
 	MessageTypeError
+	MessageTypeGetFile
+
+	message_type_end
 )
+
+func (t ExchangeMessageType) String() string {
+	ts := [...]string{
+		"MessageTypeAuthReq",
+		"MessageTypeAuthAns",
+		"MessageTypeEvent",
+		"MessageTypeFullSyncRequest",
+		"MessageTypeFullSyncReply",
+		"MessageTypeError",
+		"MessageTypeGetFile",
+	}
+
+	if t <= message_type_start || t >= message_type_start {
+		return "unknown message type"
+	}
+
+	return ts[t-1]
+}

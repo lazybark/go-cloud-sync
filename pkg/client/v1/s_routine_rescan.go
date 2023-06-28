@@ -25,6 +25,9 @@ func (c *FSWClient) rescanOnce() {
 	if err != nil {
 		c.extErc <- fmt.Errorf("[FSWATCHER][START][DiffListWithServer]: %w", err)
 	}
+	fmt.Println("++++++++++++++++++")
+	fmt.Println(objsOnServer)
+	fmt.Println("++++++++++++++++++")
 	download, created, updated, err := c.GetDiffListWithServer(local, objsOnServer)
 	if err != nil {
 		c.extErc <- fmt.Errorf("[FSWATCHER][START] diff with server: %w", err)
@@ -32,6 +35,10 @@ func (c *FSWClient) rescanOnce() {
 	fmt.Println("TO DOWNLOAD")
 	for _, o := range download {
 		fmt.Println(o.Path, o.Name)
+		if o.IsDir {
+			//We do not download whole dirs, only file by file
+			continue
+		}
 		go c.DownloadObject(o)
 	}
 	fmt.Println("TO created")

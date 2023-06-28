@@ -22,7 +22,7 @@ func SendSyncMessage(sc SyncMessenger, payload any, mType ExchangeMessageType) e
 }
 
 func SendErrorMessage(sc SyncMessenger, e ErrorCode) error {
-	plb, err := json.Marshal(MessageError{Success: false, Error: e.String(), ErrorCode: e.Int()})
+	plb, err := json.Marshal(MessageError{Error: e.String(), ErrorCode: e.Int()})
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage] %w", err)
 	}
@@ -37,22 +37,57 @@ func SendErrorMessage(sc SyncMessenger, e ErrorCode) error {
 	return nil
 }
 
-func AwaitAnswer(sc SyncReciever, payloadType any) error {
+func AwaitAnswer(sc SyncReciever, m *ExchangeMessage) error {
 	ans, err := sc.AwaitAnswer()
 	if err != nil {
 		return fmt.Errorf("[AwaitAnswer] %w", err)
 	}
+	err = json.Unmarshal(ans.Bytes(), m)
+	if err != nil {
+		return fmt.Errorf("[AwaitAnswer] %w", err)
+	}
+
+	return nil
+}
+
+func UnpackMessage(m ExchangeMessage, expectedType ExchangeMessageType, payload any) error {
+	if m.Type != expectedType {
+		return fmt.Errorf("[UnpackMessage] unexpected message type '%s'", m.Type)
+	}
+
+	err := json.Unmarshal(m.Payload, payload)
+	if err != nil {
+		return fmt.Errorf("[AwaitAnswer] %w", err)
+	}
+
+	return nil
+}
+
+/*
+func AwaitAnswer(sc SyncReciever, payloadType any, expectedType ExchangeMessageType) (MessageError, error) {
+	ans, err := sc.AwaitAnswer()
+	if err != nil {
+		return MessageError{}, fmt.Errorf("[AwaitAnswer] %w", err)
+	}
 	var ms ExchangeMessage
 	err = json.Unmarshal(ans.Bytes(), &ms)
 	if err != nil {
-		return fmt.Errorf("[AwaitAnswer] %w", err)
+		return MessageError{}, fmt.Errorf("[AwaitAnswer] %w", err)
+	}
+	if ms.Type != expectedType && ms.Type != MessageTypeError {
+		return MessageError{}, fmt.Errorf("unexpected message type '%s'", ms.Type)
 	}
 	if ms.Type == MessageTypeError {
-		fmt.Println(string(ms.Payload))
+		var e MessageError
+		err = json.Unmarshal(ms.Payload, &e)
+		if err != nil {
+			return e, fmt.Errorf("[AwaitAnswer] %w", err)
+		}
 	}
+
 	err = json.Unmarshal(ms.Payload, payloadType)
 	if err != nil {
-		return fmt.Errorf("[AwaitAnswer] %w", err)
+		return MessageError{}, fmt.Errorf("[AwaitAnswer] %w", err)
 	}
-	return nil
-}
+	return MessageError{}, nil
+}*/
