@@ -1,33 +1,10 @@
 package v1
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 )
-
-func (c *FSWClient) GetServerObjList() (l []fse.FSObject, err error) {
-	l, err = c.link.GetObjList()
-	if err != nil {
-		err = fmt.Errorf("[FSWATCHER][GetServerObjList]: %w", err)
-		return
-	}
-
-	return
-}
-
-func (c *FSWClient) GetLocalObjects() (objs []fse.FSObject, err error) {
-	objs, err = c.fp.ProcessDirectory(c.cfg.Root)
-	if err != nil {
-		err = fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
-		return
-	}
-	for _, o := range objs {
-		fmt.Println(o.Path, o.Name)
-	}
-	return
-}
 
 func (c *FSWClient) GetDiffListWithServer(locObjs []fse.FSObject, srvObjs []fse.FSObject) (dld []fse.FSObject, crtd []fse.FSObject, updtd []fse.FSObject, err error) {
 	temp := make(map[string]fse.FSObject)
@@ -72,11 +49,4 @@ func (c *FSWClient) GetDiffListWithServer(locObjs []fse.FSObject, srvObjs []fse.
 	}
 
 	return
-}
-
-func (c *FSWClient) DownloadObject(obj fse.FSObject) {
-	err := c.link.DownloadObject(obj, c.fp.GetPathUnescaped(obj))
-	if err != nil {
-		c.extErc <- fmt.Errorf("[FSWATCHER][DownloadObject]: %w", err)
-	}
 }

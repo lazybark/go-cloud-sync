@@ -33,6 +33,7 @@ type FSWServer struct {
 
 type ServerConfig struct {
 	root      string
+	cacheRoot string
 	host      string
 	port      string
 	escSymbol string

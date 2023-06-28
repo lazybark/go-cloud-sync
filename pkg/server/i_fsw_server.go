@@ -7,7 +7,7 @@ import (
 )
 
 type IFSWServer interface {
-	Init(root, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error
+	Init(root, cacheRoot, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error
 	Start() error
 	Stop() error
 }

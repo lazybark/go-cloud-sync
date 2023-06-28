@@ -2,21 +2,15 @@ package fselink
 
 import (
 	"fmt"
-	"strings"
+	"os"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-tls-server/v2/client"
 )
 
-func NewClient(cacheDir, filesystemRoot string) (*SyncClient, error) {
+func NewClient() (*SyncClient, error) {
 	c := &SyncClient{}
 
-	if strings.HasPrefix(cacheDir, filesystemRoot) {
-		return c, fmt.Errorf("[NewClient] cache directory is within the filesystem root! '%s' can not be used as cache path", cacheDir)
-	}
-
-	c.cacheDir = cacheDir
-	c.filesystemRoot = filesystemRoot
 	return c, nil
 }
 
@@ -34,28 +28,31 @@ func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
 	}
 	if maa.Type == MessageTypeError {
 		var se MessageError
-		err := UnpackMessage(maa, MessageTypeError, &se)
+		err = UnpackMessage(maa, MessageTypeError, &se)
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
 		return l, fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
 	} else if maa.Type == MessageTypeFullSyncReply {
 		var sm MessageFullSyncReply
-		err := UnpackMessage(maa, MessageTypeFullSyncReply, &sm)
+		err = UnpackMessage(maa, MessageTypeFullSyncReply, &sm)
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
 		l = sm.Objects
+
+		return
 	}
 
 	return l, fmt.Errorf("[GetObjList] unexpected answer type '%s'", maa.Type)
 }
 
-func (sc *SyncClient) DownloadObject(obj fse.FSObject, destPath string) (err error) {
-	link, err := NewClient(sc.cacheDir, sc.filesystemRoot)
+func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err error) {
+	link, err := NewClient()
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
+	fmt.Println("LinkID:", link)
 
 	err = link.Init(sc.serverPort, sc.serverAddr, sc.login, sc.pwd)
 	if err != nil {
@@ -68,19 +65,41 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destPath string) (err err
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
 
-	err = SendSyncMessage(sc, MessageGetFile{Object: obj}, MessageTypeGetFile)
+	err = SendSyncMessage(link, MessageGetFile{Object: obj}, MessageTypeGetFile)
 	if err != nil {
-		return fmt.Errorf("[ConnectAndAuth]%w", err)
+		return fmt.Errorf("[DownloadObject]%w", err)
 	}
 
 	var maa ExchangeMessage
-	err = AwaitAnswer(sc, &maa)
-	if err != nil {
-		err = fmt.Errorf("[GetObjList] %w", err)
-		return
-	}
+	for {
+		err = AwaitAnswer(link, &maa)
+		if err != nil {
+			return fmt.Errorf("[DownloadObject]%w", err)
+		}
+		if maa.Type == MessageTypeError {
+			var se MessageError
+			err := UnpackMessage(maa, MessageTypeError, &se)
+			if err != nil {
+				return fmt.Errorf("[ConnectAndAuth]%w", err)
+			}
+			return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+		} else if maa.Type == MessageTypeFileParts {
+			var m MessageFilePart
+			err := UnpackMessage(maa, MessageTypeFileParts, &m)
+			if err != nil {
+				return fmt.Errorf("[ConnectAndAuth]%w", err)
+			}
+			_, err = destFile.Write(m.Payload)
+			if err != nil {
+				return fmt.Errorf("[DownloadObject]%w", err)
+			}
 
-	return
+		} else if maa.Type == MessageTypeFileEnd {
+			return nil
+		} else {
+			return fmt.Errorf("[DownloadObject] unexpected answer type '%s'", maa.Type)
+		}
+	}
 }
 
 func (sc *SyncClient) Init(port int, addr, login, pwd string) error {
@@ -98,6 +117,7 @@ func (sc *SyncClient) Init(port int, addr, login, pwd string) error {
 	if err != nil {
 		return fmt.Errorf("[SyncClient][Init]%w", err)
 	}
+	fmt.Println("Got auth key:", sc.akey)
 
 	return nil
 }

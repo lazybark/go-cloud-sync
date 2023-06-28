@@ -1,8 +1,11 @@
 package v1
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
@@ -18,7 +21,7 @@ func NewServer(stor storage.IStorage) *FSWServer {
 	s := &FSWServer{}
 
 	s.evc = make(chan (fse.FSEvent))
-	s.erc = make(chan (error))
+	s.erc = make(chan (error)) //Not used for now
 	s.srvConnChan = make(chan *gts.Connection)
 	s.srvErrChan = make(chan error)
 	s.srvMessChan = make(chan *gts.Message)
@@ -31,17 +34,18 @@ func NewServer(stor storage.IStorage) *FSWServer {
 }
 
 // Init sets initial config to the Watcher
-func (s *FSWServer) Init(root, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error {
+func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error {
 	s.conf.root = root
+	s.conf.cacheRoot = cacheRoot
 	s.conf.host = host
 	s.conf.port = port
 	s.conf.escSymbol = escSymbol
 	s.extEvc = evc
 	s.extErc = erc
 
-	s.fp = fp.NewFPv1(escSymbol, root)
+	s.fp = fp.NewFPv1(escSymbol, root, cacheRoot)
 
-	err := s.w.Init(root, s.evc, s.erc)
+	err := s.w.Init(root, s.extEvc, s.extErc)
 	if err != nil {
 		return fmt.Errorf("[INIT]: %w", err)
 	}
@@ -50,6 +54,10 @@ func (s *FSWServer) Init(root, host, port, escSymbol string, evc chan (fse.FSEve
 	if err != nil {
 		return fmt.Errorf("[INIT]: %w", err)
 	}
+
+	fmt.Printf("Server started on %s:%s\n", host, port)
+	fmt.Printf("Root path:%s\n", root)
+	fmt.Printf("Cache path:%s\n", cacheRoot)
 
 	return nil
 }
@@ -66,8 +74,7 @@ func (s *FSWServer) ExtractOwnerFromPath(p string) string {
 func (s *FSWServer) ReadLocalObjects() (objs []storage.FSObjectStored, err error) {
 	local, err := s.fp.ProcessDirectory(s.conf.root)
 	if err != nil {
-		err = fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
-		return
+		return nil, fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
 	}
 	for _, o := range local {
 		if o.Path == "?ROOT_DIR?" {
@@ -91,23 +98,32 @@ func (s *FSWServer) ReadLocalObjects() (objs []storage.FSObjectStored, err error
 // Start launches the filesystem watcher routine. You need to call Init() before.
 func (s *FSWServer) Start() error {
 	s.rescanOnce()
+	fmt.Println("Root directory processed")
 
 	go s.htsrv.Listen(s.conf.host, s.conf.port)
 	go s.watcherRoutine()
 	s.isActive = true
-	return s.w.Start()
+	err := s.w.Start()
+	if err != nil {
+		return fmt.Errorf("[SERVER][START]%w", err)
+	}
+	return nil
 }
 
 func (s *FSWServer) rescanOnce() {
 	local, err := s.ReadLocalObjects()
 	if err != nil {
-		s.extErc <- fmt.Errorf("[rescanOnce]: %w", err)
+		s.extErc <- fmt.Errorf("[rescanOnce]%w", err)
+		return
 	}
+	fmt.Printf("Root directory read. Found %d objects\n", len(local))
 
 	err = s.stor.RefillDatabase(local)
 	if err != nil {
-		s.extErc <- fmt.Errorf("[rescanOnce]: %w", err)
+		s.extErc <- fmt.Errorf("[rescanOnce]%w", err)
+		return
 	}
+	fmt.Println("Database refilled")
 }
 
 // Stop stops the filesystem watcher and closes all channels
@@ -122,11 +138,13 @@ func (s *FSWServer) Stop() error {
 	close(s.erc)
 
 	s.isActive = false
+	fmt.Println("Server stopped")
 
 	return nil
 }
 
 func (s *FSWServer) watcherRoutine() {
+	fmt.Println("Waiting for connections")
 	var ev fse.FSEvent
 	var m fselink.ExchangeMessage
 	for {
@@ -154,6 +172,7 @@ func (s *FSWServer) watcherRoutine() {
 					s.extErc <- err
 					continue
 				}
+				fmt.Println("SENT AUTH")
 			} else if m.Type == fselink.MessageTypeEvent {
 				if !s.checkToken(m.AuthKey, m.AuthKey) {
 					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
@@ -179,11 +198,6 @@ func (s *FSWServer) watcherRoutine() {
 					}
 					continue
 				}
-				/*l := []fse.FSObject{
-					{Path: `?ROOT_DIR?`, Name: "New folder (4)", Hash: "", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: true},
-					{Path: `?ROOT_DIR?`, Name: "SOME WEIRD FOLDER", Hash: "", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: true},
-					{Path: `?ROOT_DIR?,SOME WEIRD FOLDER`, Name: "file.jpg", Hash: "asdfghfdsfgh", UpdatedAt: time.Now().Add(time.Minute * +14), IsDir: false},
-				}*/
 				uo, err := s.stor.GetUsersObjects("1")
 				if err != nil {
 					s.extErc <- err
@@ -206,6 +220,85 @@ func (s *FSWServer) watcherRoutine() {
 					s.extErc <- err
 					continue
 				}
+			} else if m.Type == fselink.MessageTypeGetFile {
+				if !s.checkToken(m.AuthKey, m.AuthKey) {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
+					if err != nil {
+						s.extErc <- err
+						continue
+					}
+					continue
+				}
+				//user := "1"
+
+				var mu fselink.MessageGetFile
+				err = fselink.UnpackMessage(m, fselink.MessageTypeGetFile, &mu)
+				if err != nil {
+					s.extErc <- err
+					continue
+				}
+
+				fileName := s.fp.GetPathUnescaped(mu.Object)
+				stat, err := os.Stat(fileName)
+				if err != nil {
+					s.extErc <- err
+					continue
+				}
+				if stat.IsDir() {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrWrongObjectType)
+					if err != nil {
+						s.extErc <- err
+						continue
+					}
+					continue
+				}
+
+				fileData, err := os.Open(fileName)
+				if err != nil {
+					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrFileReadingFailed)
+					if err != nil {
+						s.extErc <- err
+					}
+					continue
+				}
+
+				// TLS record size can be up to 16KB but some extra bytes may apply
+				// https://hpbn.co/transport-layer-security-tls/#optimize-tls-record-size
+				buf := make([]byte, 15360)
+				n := 0
+
+				r := bufio.NewReader(fileData)
+
+				for {
+					n, err = r.Read(buf)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrFileReadingFailed)
+						if err != nil {
+							s.extErc <- err
+						}
+						break
+					}
+
+					err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageFilePart{Payload: buf[:n]}, fselink.MessageTypeFileParts)
+					if err != nil {
+						s.extErc <- err
+						break
+					}
+				}
+				fileData.Close()
+
+				err = fselink.SendSyncMessage(mess.Conn(), nil, fselink.MessageTypeFileEnd)
+				if err != nil {
+					s.extErc <- err
+					continue
+				}
+				fmt.Println("SENT FILE")
+
+			} else {
+
 			}
 		case err, ok := <-s.srvErrChan:
 			if !ok {

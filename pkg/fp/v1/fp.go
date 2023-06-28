@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-helpers/hasher"
 )
@@ -15,19 +16,49 @@ import (
 type FileProcessor struct {
 	escSymbol string
 	root      string
+	cacheRoot string
 }
 
-func NewFP(escSymbol, root string) *FileProcessor {
+func NewFP(escSymbol, root, cacheRoot string) *FileProcessor {
 	fp := FileProcessor{
 		escSymbol: escSymbol,
 		root:      root,
+		cacheRoot: cacheRoot,
 	}
 
 	return &fp
 }
 
+func (f *FileProcessor) CreateFileInCache() (file *os.File, err error) {
+	u, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+	tempPath := f.cacheRoot + string(filepath.Separator) + "cache_getfile" + u.String()
+	if err := os.MkdirAll(f.cacheRoot, os.ModePerm); err != nil {
+		return nil, err
+	}
+	theFile, err := os.Create(tempPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return theFile, nil
+}
+
+func (f *FileProcessor) DeleteFileInCache(path string) (err error) {
+	if !strings.HasPrefix(path, f.cacheRoot) {
+		return fmt.Errorf("[DeleteFileInCache] can not delete file outside of cache root ('%s')", path)
+	}
+	return os.Remove(path)
+}
+
 func (f *FileProcessor) GetPathUnescaped(obj fse.FSObject) string {
 	return filepath.Join(f.UnEscapePath(obj.Path), obj.Name)
+}
+
+func (f *FileProcessor) UnescapePath(obj fse.FSObject) string {
+	return filepath.Join(f.UnEscapePath(obj.Path))
 }
 
 // ProcessDirectory returns full list of objects in the directory recursively.
@@ -136,6 +167,10 @@ func (fp *FileProcessor) EscapePath(path string) string {
 
 func (fp *FileProcessor) UnEscapePath(path string) string {
 	path = strings.ReplaceAll(path, "?ROOT_DIR?", fp.root)
+	return strings.ReplaceAll(path, fp.escSymbol, string(filepath.Separator))
+}
+func (fp *FileProcessor) UnEscapePathWithUser(path string, user string) string {
+	path = strings.ReplaceAll(path, "?ROOT_DIR?", fp.root+fp.escSymbol+user+fp.escSymbol)
 	return strings.ReplaceAll(path, fp.escSymbol, string(filepath.Separator))
 }
 

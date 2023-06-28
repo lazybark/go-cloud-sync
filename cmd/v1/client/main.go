@@ -31,15 +31,6 @@ func main() {
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	/*sqstor, err := sqlitestorage.NewSQLite("", ",")
-	if err != nil {
-		log.Fatal(err)
-	}
-	*/
-	w := client.NewClientV1(nil, `D:\client_cache`, filepath.Join(filepath.Split(cfg.FS.Root)))
-	w.Init(evc, erc)
-	w.Start()
-
 	go func() {
 		for event := range evc {
 			fmt.Println(event)
@@ -51,6 +42,16 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
+
+	w := client.NewClientV1(nil, `D:\client_cache`, filepath.Join(filepath.Split(cfg.FS.Root)))
+	err = w.Init(evc, erc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = w.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Just endless cycle for now
 	for {

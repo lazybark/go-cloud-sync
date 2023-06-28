@@ -36,6 +36,7 @@ func (sc *SyncClient) ConnectAndAuth() error {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
 		sc.akey = sm.AuthKey
+		return nil
 	}
 
 	return fmt.Errorf("[GetObjList] unexpected answer type '%s'", maa.Type)

@@ -8,9 +8,7 @@ import (
 
 type IFSWClient interface {
 	Init(evc chan (fse.FSEvent), erc chan (error)) error
-
 	Start() error
-
 	Stop() error
 }
 

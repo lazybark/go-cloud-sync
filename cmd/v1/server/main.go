@@ -18,15 +18,6 @@ func main() {
 	evc := make(chan (fse.FSEvent))
 	erc := make(chan error)
 
-	sqstor, err := sqlitestorage.NewSQLite("", ",")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	w := server.NewServerV1(sqstor)
-	w.Init(`D:\filesystem_root_server`, `localhost`, `5555`, ",", evc, erc)
-	w.Start()
-
 	go func() {
 		for event := range evc {
 			fmt.Println(event)
@@ -38,6 +29,21 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
+
+	sqstor, err := sqlitestorage.NewSQLite("", ",")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := server.NewServerV1(sqstor)
+	err = w.Init(`D:\filesystem_root_server`, `D:\server_cache`, `localhost`, `5555`, ",", evc, erc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = w.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Just endless cycle for now
 	for {

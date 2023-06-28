@@ -1,7 +1,6 @@
 package sqlitestorage
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -46,27 +45,10 @@ func (s *SQLiteStorage) RefillDatabase(objs []storage.FSObjectStored) error {
 	if err != nil {
 		return err
 	}
-	/*
-		var recs []FSObject
-		var owner int
-		for _, o := range objs {
-			fmt.Println(o)
-			owner, err = ExtractOwnerFromPath(o.Path, s.escSymbol)
-			if err != nil {
-				return err
-			}
-			if owner == 0 {
-				continue
-			}
-			//We don't care about files in server's root - they don't belong to anyone
-			if o.Path == s.rootSymbol {
-				continue
-			}
 
-			recs = append(recs, ConvertObjectsToDB(o, owner))
-		}
-
-		fmt.Println(recs)*/
+	if len(objs) == 0 {
+		return nil
+	}
 
 	return s.db.Create(&objs).Error
 }
@@ -102,28 +84,11 @@ func (s *SQLiteStorage) RemoveObject(obj storage.FSObjectStored, recursive bool)
 			return err
 		}
 	}
-	fmt.Println(`DELETE FROM fs_objects WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`)
 
 	if o.IsDir && recursive {
-		/*if err := s.db.Where("path LIKE %?%", obj.Path+s.escSymbol+obj.Name).Delete(&FSObject{}).Error; err != nil && err != gorm.ErrRecordNotFound {
-			return err
-		}*/
-		//s.db.Delete(&FSObject{}, "path LIKE ?", "%"+obj.Path+s.escSymbol+obj.Name+"%")
 		if err := s.db.Exec(`DELETE FROM fs_objects WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
 		}
-		/*childrenList := strings.Split(obj.Path+s.escSymbol+obj.Name, s.escSymbol)
-		fmt.Println(childrenList)
-		var childrenPaths [][]string
-		for step := range childrenList {
-			childrenPaths = append(childrenPaths, childrenList[0:step])
-		}
-		for _, c := range childrenPaths {
-			fmt.Println(filepath.Join(c...))
-			if err := s.db.Where("path = ?", filepath.Join(c...)).Delete(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
-				return err
-			}
-		}*/
 	}
 
 	return nil

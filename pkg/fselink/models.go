@@ -14,14 +14,12 @@ type SyncReciever interface {
 }
 
 type SyncClient struct {
-	akey           string
-	cacheDir       string
-	filesystemRoot string
-	serverAddr     string
-	serverPort     int
-	login          string
-	pwd            string
-	c              *client.Client
+	akey       string
+	serverAddr string
+	serverPort int
+	login      string
+	pwd        string
+	c          *client.Client
 }
 
 type Credentials struct {
@@ -70,6 +68,8 @@ const (
 	MessageTypeFullSyncReply
 	MessageTypeError
 	MessageTypeGetFile
+	MessageTypeFileParts
+	MessageTypeFileEnd
 
 	message_type_end
 )
@@ -83,6 +83,8 @@ func (t ExchangeMessageType) String() string {
 		"MessageTypeFullSyncReply",
 		"MessageTypeError",
 		"MessageTypeGetFile",
+		"MessageTypeFileParts",
+		"MessageTypeFileEnd",
 	}
 
 	if t <= message_type_start || t >= message_type_start {
