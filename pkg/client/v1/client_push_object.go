@@ -8,10 +8,17 @@ import (
 )
 
 func (c *FSWClient) PushObject(obj fse.FSObject) {
-	fmt.Println("PUSHING ", obj.Name+obj.Path)
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
+
+	if c.IsInActionBuffer(pathFullUnescaped) {
+		return
+	}
+
 	c.AddToActionBuffer(pathFullUnescaped)
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
+
+	fmt.Println("UPLOADING:", pathFullUnescaped)
+
 	file, err := c.fp.OpenToRead(pathFullUnescaped)
 	if err != nil {
 		c.extErc <- fmt.Errorf("[PUSH TO SERVER]%w", err)

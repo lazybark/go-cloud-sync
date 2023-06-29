@@ -17,7 +17,7 @@ func (s *SQLiteStorage) RemoveObject(obj storage.FSObjectStored, recursive bool)
 	}
 
 	if o.IsDir && recursive {
-		if err := s.db.Exec(`DELETE FROM fs_objects WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`).Error; err != nil && err != gorm.ErrRecordNotFound {
+		if err := s.db.Exec(`DELETE FROM fs_object_storeds WHERE "path" LIKE "%` + obj.Path + s.escSymbol + obj.Name + s.escSymbol + `%" OR "path" = "` + obj.Path + s.escSymbol + obj.Name + `"`).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return err
 		}
 	}

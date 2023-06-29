@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
@@ -249,7 +250,8 @@ func (s *FSWServer) watcherRoutine() {
 						}
 
 						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
-						pathUnescaped := s.fp.GetPathUnescaped(mu.Object)
+						pathUnescaped := filepath.Join(s.fp.UnescapePath(mu.Object))
+						pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(mu.Object))
 
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
 						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
@@ -284,11 +286,27 @@ func (s *FSWServer) watcherRoutine() {
 						if mu.Object.IsDir {
 							fmt.Println("CREATING DIR")
 							//CREATE DIR HERE
-							if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
+							if err := os.MkdirAll(pathFullUnescaped, os.ModePerm); err != nil {
 								s.extErc <- err
 								s.sendError(mess.Conn(), proto.ErrInternalServerError)
 								return
 							}
+							err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
+								Name:        mu.Object.Name,
+								Path:        mu.Object.Path,
+								Owner:       user,
+								Hash:        mu.Object.Hash,
+								IsDir:       mu.Object.IsDir,
+								Ext:         mu.Object.Ext,
+								Size:        mu.Object.Size,
+								FSUpdatedAt: mu.Object.UpdatedAt,
+							})
+							if err != nil {
+								s.extErc <- err
+								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								continue
+							}
+
 							err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
 							if err != nil {
 								s.extErc <- err
@@ -299,7 +317,6 @@ func (s *FSWServer) watcherRoutine() {
 								s.extErc <- err
 								continue
 							}
-							//s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 							continue
 						}
 
@@ -309,31 +326,95 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						file, err := s.fp.CreateFileInCache()
+						destFile, err := s.fp.CreateFileInCache()
 						if err != nil {
 							s.extErc <- err
 							s.sendError(mess.Conn(), proto.ErrInternalServerError)
 							return
 						}
-						fmt.Println(file.Name())
 						//HERE WE SHOULD WAIT FOR FILE PARTS
-						/*for filePartMessage := range connection.MessageChan {
-
-						}*/
-
-						/*if dbObj.ID != 0 {
-							err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
+						for filePartMessage := range connection.MessageChan {
+							err := json.Unmarshal(filePartMessage.Bytes(), &m)
 							if err != nil {
 								s.extErc <- err
-								s.sendError(mess.Conn(), proto.ErrInternalServerError)
 								continue
 							}
-						}*/
-						file.Close()
+							if m.Type == proto.MessageTypeError {
+								var se proto.MessageError
+								err := fselink.UnpackMessage(m, proto.MessageTypeError, &se)
+								if err != nil {
+									s.extErc <- err
+									return
+								}
+								s.extErc <- err
+								return
+							} else if m.Type == proto.MessageTypeFileParts {
+								var mp proto.MessageFilePart
+								err := fselink.UnpackMessage(m, proto.MessageTypeFileParts, &mp)
+								if err != nil {
+									s.extErc <- err
+									return
+								}
+								_, err = destFile.Write(mp.Payload)
+								if err != nil {
+									s.extErc <- err
+									return
+								}
+
+							} else if m.Type == proto.MessageTypeFileEnd {
+								break
+							} else {
+								s.extErc <- fmt.Errorf("[DownloadObject] unexpected answer type '%s'", m.Type)
+								return
+							}
+						}
+
+						destFile.Close()
+
+						if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
+							s.extErc <- err
+							err = s.fp.DeleteFileInCache(destFile.Name())
+							if err != nil {
+								s.extErc <- err
+							}
+							return
+						}
+						err = os.Rename(destFile.Name(), pathFullUnescaped)
+						if err != nil {
+							s.extErc <- err
+							err = s.fp.DeleteFileInCache(destFile.Name())
+							if err != nil {
+								s.extErc <- err
+							}
+							return
+						}
+						err = os.Chtimes(pathFullUnescaped, mu.Object.UpdatedAt, mu.Object.UpdatedAt)
+						if err != nil {
+							s.extErc <- err
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							continue
+						}
+
+						err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
+							Name:        mu.Object.Name,
+							Path:        mu.Object.Path,
+							Owner:       user,
+							Hash:        mu.Object.Hash,
+							IsDir:       mu.Object.IsDir,
+							Ext:         mu.Object.Ext,
+							Size:        mu.Object.Size,
+							FSUpdatedAt: mu.Object.UpdatedAt,
+						})
+						if err != nil {
+							s.extErc <- err
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							continue
+						}
 
 						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
 						if err != nil {
 							s.extErc <- err
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
 							continue
 						}
 
@@ -341,6 +422,14 @@ func (s *FSWServer) watcherRoutine() {
 						if err != nil {
 							s.extErc <- err
 							continue
+						}
+						if dbObj.ID != 0 {
+							err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
+							if err != nil {
+								s.extErc <- err
+								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								continue
+							}
 						}
 						fmt.Println("DOWNLOADED FILE")
 						continue

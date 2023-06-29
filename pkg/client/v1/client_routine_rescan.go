@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -10,6 +11,7 @@ func (c *FSWClient) rescanRoutine(freq time.Duration) {
 	time.Sleep(freq)
 	for {
 		c.rescanOnce()
+		fmt.Println("RESCANNED")
 		time.Sleep(freq)
 	}
 }

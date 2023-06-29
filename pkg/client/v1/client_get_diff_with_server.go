@@ -27,14 +27,14 @@ func (c *FSWClient) GetDiffListWithServer(locObjs []fse.FSObject, srvObjs []fse.
 					updtd = append(updtd, local)
 				}
 			}
-			if local.IsDir {
+			/*if local.IsDir {
 				if serv.UpdatedAt.After(local.UpdatedAt) {
 					dld = append(dld, local)
 				}
 				if local.UpdatedAt.After(serv.UpdatedAt) || local.UpdatedAt.Equal(serv.UpdatedAt) {
 					updtd = append(updtd, local)
 				}
-			}
+			}*/
 			delete(temp, key)
 		} else {
 			dld = append(dld, serv)

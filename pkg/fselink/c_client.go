@@ -125,8 +125,6 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 		}
 		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
 	} else if maa.Type == proto.MessageTypePeerReady {
-		fmt.Println("PEER READY")
-
 		// TLS record size can be up to 16KB but some extra bytes may apply
 		// https://hpbn.co/transport-layer-security-tls/#optimize-tls-record-size
 		buf := make([]byte, 15360)
@@ -178,7 +176,6 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 	defer link.c.Close()
 
 	link.SetAuthKey(sc.akey)
-	fmt.Println("[DownloadObject]", link.akey)
 
 	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypeGetFile)
 	if err != nil {
@@ -232,7 +229,6 @@ func (sc *SyncClient) Init(port int, addr, login, pwd string) error {
 	if err != nil {
 		return fmt.Errorf("[SyncClient][Init]%w", err)
 	}
-	fmt.Println("Got auth key:", sc.akey)
 
 	return nil
 }

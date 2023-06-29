@@ -2,6 +2,8 @@ package v1
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
 func (c *FSWClient) rescanOnce() {
@@ -10,14 +12,21 @@ func (c *FSWClient) rescanOnce() {
 		c.extErc <- fmt.Errorf("[SCAN DIR] getting local objects: %w", err)
 		return
 	}
+	/*fmt.Println("_________________________")
+	for _, oo := range local {
+		fmt.Println(oo)
+	}
+	fmt.Println("_________________________")*/
 	objsOnServer, err := c.GetServerObjList()
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] Getting server objects: %w", err)
 		return
 	}
-	/*	fmt.Println("++++++++++++++++++")
-		fmt.Println(objsOnServer)
-		fmt.Println("++++++++++++++++++")*/
+	/*fmt.Println("++++++++++++++++++")
+	for _, oo := range objsOnServer {
+		fmt.Println(oo)
+	}
+	fmt.Println("++++++++++++++++++")*/
 	download, created, updated, err := c.GetDiffListWithServer(local, objsOnServer)
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] checking for differences: %w", err)
@@ -28,6 +37,13 @@ func (c *FSWClient) rescanOnce() {
 		//fmt.Println(o.Path, o.Name)
 		if o.IsDir {
 			//We do not download whole dirs, only file by file
+			pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(o))
+			if err := os.MkdirAll(pathFullUnescaped, os.ModePerm); err != nil {
+				if err != nil {
+					c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
+				}
+				continue
+			}
 			continue
 		}
 		go c.DownloadObject(o)

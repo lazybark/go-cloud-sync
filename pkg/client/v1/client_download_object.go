@@ -15,6 +15,7 @@ func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 	if c.IsInActionBuffer(pathFullUnescaped) {
 		return
 	}
+	fmt.Println("DOWNLOADING:", pathFullUnescaped)
 
 	c.AddToActionBuffer(pathFullUnescaped)
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
