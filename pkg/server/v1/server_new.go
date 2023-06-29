@@ -7,7 +7,7 @@ import (
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
-func NewServer(stor storage.IStorage) *FSWServer {
+func NewServer(stor storage.IServerStorage) *FSWServer {
 	s := &FSWServer{}
 	s.srvConnChan = make(chan *gts.Connection)
 	s.srvErrChan = make(chan error)

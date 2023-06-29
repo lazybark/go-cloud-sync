@@ -6,7 +6,6 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
-	"github.com/lazybark/go-cloud-sync/pkg/storage"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
 
@@ -21,8 +20,6 @@ type FSWClient struct {
 	ActionsBufferMutex sync.RWMutex
 
 	link fselink.FSEClientLink
-
-	db storage.IStorage
 
 	cfg ClientConfig
 }

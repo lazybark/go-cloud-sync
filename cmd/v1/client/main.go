@@ -43,7 +43,7 @@ func main() {
 		}
 	}()
 
-	w := client.NewClientV1(nil, `D:\client_cache`, filepath.Join(filepath.Split(cfg.FS.Root)))
+	w := client.NewClientV1(`D:\client_cache`, filepath.Join(filepath.Split(cfg.FS.Root)))
 	err = w.Init(evc, erc, "login", "pwd")
 	if err != nil {
 		log.Fatal(err)

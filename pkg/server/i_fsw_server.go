@@ -12,6 +12,6 @@ type IFSWServer interface {
 	Stop() error
 }
 
-func NewServerV1(stor storage.IStorage) IFSWServer {
+func NewServerV1(stor storage.IServerStorage) IFSWServer {
 	return v1.NewServer(stor)
 }

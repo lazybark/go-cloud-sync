@@ -24,7 +24,7 @@ type FSWServer struct {
 	srvErrChan  chan error
 	srvConnChan chan *gts.Connection
 
-	stor storage.IStorage
+	stor storage.IServerStorage
 
 	htsrv fselink.FSEServerPool
 

@@ -1,6 +1,6 @@
 package storage
 
-type IStorage interface {
+type IServerStorage interface {
 	CreateObject(obj FSObjectStored) error
 	RemoveObject(obj FSObjectStored, recursive bool) (err error)
 	UpdateObject(obj FSObjectStored) error
