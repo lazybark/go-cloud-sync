@@ -15,6 +15,8 @@ type FSWServer struct {
 
 	fp fp.Fileprocessor
 
+	connections map[string]*SyncConnection
+
 	extEvc chan (fse.FSEvent)
 	evc    chan (fse.FSEvent)
 	extErc chan (error)
