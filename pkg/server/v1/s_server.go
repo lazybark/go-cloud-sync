@@ -249,6 +249,7 @@ func (s *FSWServer) watcherRoutine() {
 						}
 
 						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+						pathUnescaped := s.fp.GetPathUnescaped(mu.Object)
 
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
 						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
@@ -267,13 +268,37 @@ func (s *FSWServer) watcherRoutine() {
 							}
 							//Do not sync dirs
 							if mu.Object.IsDir {
-								//UPDATE DIR HERE
-								//s.sendError(mess.Conn(), proto.ErrWrongObjectType)
+								err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+								if err != nil {
+									s.extErc <- err
+									continue
+								}
+								err = mess.Conn().Close()
+								if err != nil {
+									s.extErc <- err
+									continue
+								}
 								continue
 							}
 						}
 						if mu.Object.IsDir {
+							fmt.Println("CREATING DIR")
 							//CREATE DIR HERE
+							if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
+								s.extErc <- err
+								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								return
+							}
+							err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+							if err != nil {
+								s.extErc <- err
+								continue
+							}
+							err = mess.Conn().Close()
+							if err != nil {
+								s.extErc <- err
+								continue
+							}
 							//s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 							continue
 						}
@@ -284,7 +309,17 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
+						file, err := s.fp.CreateFileInCache()
+						if err != nil {
+							s.extErc <- err
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							return
+						}
+						fmt.Println(file.Name())
 						//HERE WE SHOULD WAIT FOR FILE PARTS
+						/*for filePartMessage := range connection.MessageChan {
+
+						}*/
 
 						/*if dbObj.ID != 0 {
 							err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
@@ -294,6 +329,7 @@ func (s *FSWServer) watcherRoutine() {
 								continue
 							}
 						}*/
+						file.Close()
 
 						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
 						if err != nil {
@@ -301,11 +337,12 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						fmt.Println("DOWNLOADED FILE")
 						err = mess.Conn().Close()
 						if err != nil {
 							s.extErc <- err
+							continue
 						}
+						fmt.Println("DOWNLOADED FILE")
 						continue
 
 					} else if m.Type == proto.MessageTypeDeleteObject {

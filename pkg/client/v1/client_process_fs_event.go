@@ -11,7 +11,7 @@ func (c *FSWClient) processFilesystemEvent(event fse.FSEvent) {
 	if _, buffered := c.ActionsBuffer[filepath.Join(event.Object.Path, event.Object.Name)]; buffered {
 		return
 	}
-	c.extEvChannel <- event
+	//c.extEvChannel <- event
 	//Process event with storage
 	if event.Action == fse.Create || event.Action == fse.Write {
 		obj, err := c.fp.ProcessObject(event.Object, true)

@@ -8,6 +8,7 @@ import (
 )
 
 func (c *FSWClient) PushObject(obj fse.FSObject) {
+	fmt.Println("PUSHING ", obj.Name+obj.Path)
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
 	c.AddToActionBuffer(pathFullUnescaped)
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)

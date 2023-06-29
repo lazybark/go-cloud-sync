@@ -35,20 +35,12 @@ func (c *FSWClient) rescanOnce() {
 	//fmt.Println("TO created")
 	//Each obj in created & updated is treated as a new FS event
 	for _, o := range created {
-		if o.IsDir {
-			//We do not download whole dirs, only file by file
-			continue
-		}
 		go c.PushObject(o)
 		//fmt.Println(o.Path, o.Name)
 		//go c.processFilesystemEvent(fse.FSEvent{Action: fse.Create, Object: o})
 	}
 	//fmt.Println("TO updated")
 	for _, o := range updated {
-		if o.IsDir {
-			//We do not download whole dirs, only file by file
-			continue
-		}
 		go c.PushObject(o)
 		//fmt.Println(o.Path, o.Name)
 		//go c.processFilesystemEvent(fse.FSEvent{Action: fse.Write, Object: o})

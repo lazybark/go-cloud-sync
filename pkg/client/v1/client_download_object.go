@@ -18,6 +18,7 @@ func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 
 	c.AddToActionBuffer(pathFullUnescaped)
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
+
 	//Create file in cache
 	file, err := c.fp.CreateFileInCache()
 	if err != nil {
