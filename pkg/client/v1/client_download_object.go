@@ -57,6 +57,11 @@ func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 		}
 		return
 	}
+	err = os.Chtimes(pathFullUnescaped, obj.UpdatedAt, obj.UpdatedAt)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
 
 func (c *FSWClient) IsInActionBuffer(object string) bool {
 	c.ActionsBufferMutex.Lock()
