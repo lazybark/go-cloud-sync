@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func (c *FSWClient) rescanOnce() {
+func (c *FSWClient) resyncOnce() {
 	local, err := c.GetLocalObjects()
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] getting local objects: %w", err)

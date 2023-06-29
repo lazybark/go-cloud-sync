@@ -29,13 +29,13 @@ func (c *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error), login, pwd st
 
 func (c *FSWClient) Start() error {
 	go c.watcherRoutine()
-	c.rescanOnce()
+	c.resyncOnce()
 
 	err := c.w.Start()
 	if err != nil {
 		return fmt.Errorf("[SYNC][START] starting watcher: %w", err)
 	}
-	go c.rescanRoutine(time.Minute)
+	go c.resyncRoutine(time.Minute)
 	fmt.Println("Client started")
 
 	return nil
