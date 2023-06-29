@@ -2,6 +2,7 @@
 package storage
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -22,6 +23,10 @@ type IStorage interface {
 	RefillDatabase(objs []FSObjectStored) error
 
 	GetUsersObjects(owner string) ([]FSObjectStored, error)
+
+	GetObject(path, name string) (obj FSObjectStored, err error)
+	LockObject(path, name string) error
+	UnLockObject(path, name string) error
 }
 
 type FSObjectStored struct {
@@ -36,4 +41,11 @@ type FSObjectStored struct {
 	FSUpdatedAt time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	IsLocked    bool
 }
+
+type StorageError error
+
+var (
+	ErrNotExists StorageError = fmt.Errorf("object doesn't exist")
+)

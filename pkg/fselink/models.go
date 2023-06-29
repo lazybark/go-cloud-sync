@@ -72,6 +72,8 @@ const (
 	MessageTypeFullSyncReply
 	MessageTypeError
 	MessageTypeGetFile
+	MessageTypePushFile
+	MessageTypePeerReady
 	MessageTypeFileParts
 	MessageTypeFileEnd
 
@@ -87,11 +89,13 @@ func (t ExchangeMessageType) String() string {
 		"MessageTypeFullSyncReply",
 		"MessageTypeError",
 		"MessageTypeGetFile",
+		"MessageTypePeerReady",
+		"MessageTypePushFile",
 		"MessageTypeFileParts",
 		"MessageTypeFileEnd",
 	}
 
-	if t <= message_type_start || t >= message_type_start {
+	if t <= message_type_start || t >= message_type_end {
 		return "unknown message type"
 	}
 

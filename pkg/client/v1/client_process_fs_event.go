@@ -8,13 +8,6 @@ import (
 )
 
 func (c *FSWClient) processFilesystemEvent(event fse.FSEvent) {
-	//We do not send info about dirs to server
-	//TO think: do we need to sync update times in dirs or simple file transfer will be enough?
-	//Who actually cares about dir update time if your primary need is to sync actual files?
-	//Nobody will create a cloud to sync empty dirs
-	if event.Object.IsDir {
-		return
-	}
 	if _, buffered := c.ActionsBuffer[filepath.Join(event.Object.Path, event.Object.Name)]; buffered {
 		return
 	}

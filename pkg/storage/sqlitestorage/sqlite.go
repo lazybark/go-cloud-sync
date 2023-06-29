@@ -38,6 +38,18 @@ type SQLiteStorage struct {
 	escSymbol string
 }
 
+func (s *SQLiteStorage) GetObject(path, name string) (obj storage.FSObjectStored, err error) {
+	var o storage.FSObjectStored
+	if err := s.db.Where("name = ? and path = ?", name, path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return o, err
+	}
+	if o.ID == 0 {
+		return o, storage.ErrNotExists
+	}
+
+	return o, nil
+}
+
 func (s *SQLiteStorage) RefillDatabase(objs []storage.FSObjectStored) error {
 	err := s.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&storage.FSObjectStored{}).Error
 	if err != nil {
@@ -73,7 +85,7 @@ func (s *SQLiteStorage) CreateObject(obj storage.FSObjectStored) error {
 }
 
 func (s *SQLiteStorage) RemoveObject(obj storage.FSObjectStored, recursive bool) error {
-	var o FSObject
+	var o storage.FSObjectStored
 	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}
@@ -96,8 +108,44 @@ func (s *SQLiteStorage) UpdateObject(obj storage.FSObjectStored) error {
 	return s.AddOrUpdateObject(obj)
 }
 
+func (s *SQLiteStorage) LockObject(path, name string) error {
+	o := storage.FSObjectStored{}
+	if err := s.db.Where("name = ? and path = ?", name, path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+	if o.ID == 0 {
+		return storage.ErrNotExists
+
+	}
+	o.IsLocked = true
+
+	if err := s.db.Save(&o).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SQLiteStorage) UnLockObject(path, name string) error {
+	o := storage.FSObjectStored{}
+	if err := s.db.Where("name = ? and path = ?", name, path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+	if o.ID == 0 {
+		return storage.ErrNotExists
+
+	}
+	o.IsLocked = false
+
+	if err := s.db.Save(&o).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SQLiteStorage) AddOrUpdateObject(obj storage.FSObjectStored) error {
-	o := FSObject{}
+	o := storage.FSObjectStored{}
 	if err := s.db.Where("name = ? and path = ?", obj.Name, obj.Path).First(&o).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}

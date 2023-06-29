@@ -13,6 +13,7 @@ type FSEClientLink interface {
 	//Break() error
 	GetObjList() ([]fse.FSObject, error)
 	DownloadObject(obj fse.FSObject, writeTo *os.File) error
+	PushObject(obj fse.FSObject, readFrom *os.File) error
 	SendEvent(e fse.FSEvent) error
 }
 

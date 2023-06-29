@@ -15,6 +15,7 @@ type Fileprocessor interface {
 	UnescapePath(obj fse.FSObject) string
 	CreateFileInCache() (file *os.File, err error)
 	DeleteFileInCache(path string) (err error)
+	OpenToRead(path string) (file *os.File, err error)
 }
 
 func NewFPv1(escSymbol, root, cacheRoot string) Fileprocessor {

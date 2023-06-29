@@ -161,13 +161,13 @@ func (s *FSWServer) watcherRoutine() {
 				mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
 
 				fileName := s.fp.GetPathUnescaped(mu.Object)
-				stat, err := os.Stat(fileName)
+				dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
 				//Do not sync dirs (2) - if client's a smartass and still wants it somehow
-				if stat.IsDir() {
+				if dbObj.IsDir {
 					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
 					continue
 				}
@@ -210,8 +210,65 @@ func (s *FSWServer) watcherRoutine() {
 				}
 				fmt.Println("SENT FILE")
 
-			} else {
+			} else if m.Type == fselink.MessageTypePushFile {
+				user, ok := s.checkToken(m.AuthKey)
+				if !ok || user == "" {
+					s.sendError(mess.Conn(), fselink.ErrForbidden)
+					continue
+				}
 
+				var mu fselink.MessagePushFile
+				err = fselink.UnpackMessage(m, fselink.MessageTypePushFile, &mu)
+				if err != nil {
+					s.sendError(mess.Conn(), fselink.ErrMessageReadingFailed)
+					s.extErc <- err
+					continue
+				}
+
+				//Do not sync dirs
+				if mu.Object.IsDir {
+					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
+					continue
+				}
+
+				mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+
+				//fileName := s.fp.GetPathUnescaped(mu.Object)
+				dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
+				if err != nil && err != storage.ErrNotExists {
+					s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+					s.extErc <- err
+					continue
+				}
+				//If object does not exist yet
+				if dbObj.ID != 0 {
+					err = s.stor.LockObject(mu.Object.Path, mu.Object.Name)
+					if err != nil {
+						s.extErc <- err
+						s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+						continue
+					}
+				}
+
+				err = fselink.SendSyncMessage(mess.Conn(), nil, fselink.MessageTypePeerReady)
+				if err != nil {
+					s.extErc <- err
+					continue
+				}
+
+				if dbObj.ID != 0 {
+					err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
+					if err != nil {
+						s.extErc <- err
+						s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+						continue
+					}
+				}
+
+				fmt.Println("DOWNLOADED FILE")
+			} else {
+				s.sendError(mess.Conn(), fselink.ErrUnexpectedMessageType)
+				continue
 			}
 		case err, ok := <-s.srvErrChan:
 			if !ok {
