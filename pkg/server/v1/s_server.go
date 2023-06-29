@@ -35,7 +35,6 @@ func (s *FSWServer) GetOwnerFromPath(p string) string {
 
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
-	var ev fse.FSEvent
 	var m proto.ExchangeMessage
 	for {
 		select {
@@ -72,18 +71,6 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 						fmt.Println("SENT AUTH")
-					} else if m.Type == proto.MessageTypeEvent {
-						user, ok := s.checkToken(m.AuthKey)
-						if !ok || user == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
-							continue
-						}
-						err := json.Unmarshal(m.Payload, &ev)
-						if err != nil {
-							s.extErc <- err
-						} else {
-							fmt.Println(ev)
-						}
 					} else if m.Type == proto.MessageTypeFullSyncRequest {
 						user, ok := s.checkToken(m.AuthKey)
 						if !ok || user == "" {
