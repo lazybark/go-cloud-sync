@@ -11,6 +11,11 @@ import (
 func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 	pathUnescaped := filepath.Join(c.fp.UnescapePath(obj))
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
+
+	if c.IsInActionBuffer(pathFullUnescaped) {
+		return
+	}
+
 	c.AddToActionBuffer(pathFullUnescaped)
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
 	//Create file in cache
@@ -52,6 +57,12 @@ func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 		}
 		return
 	}
+
+func (c *FSWClient) IsInActionBuffer(object string) bool {
+	c.ActionsBufferMutex.Lock()
+	_, yes := c.ActionsBuffer[object]
+	c.ActionsBufferMutex.Unlock()
+	return yes
 }
 
 func (c *FSWClient) AddToActionBuffer(object string) {
