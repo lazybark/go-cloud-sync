@@ -13,6 +13,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *FSWServer) ExtractOwnerFromPath(p string, o string) string {
@@ -33,6 +34,36 @@ func (s *FSWServer) GetOwnerFromPath(p string) string {
 	}
 }
 
+func hashAndSaltPassword(pwd []byte) (string, error) {
+
+	// Use GenerateFromPassword to hash & salt pwd.
+	// MinCost is just an integer constant provided by the bcrypt
+	// package along with DefaultCost & MaxCost.
+	// The cost can be any value you want provided it isn't lower
+	// than the MinCost (4)
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		return "", fmt.Errorf("[hashAndSaltPassword]%w", err)
+	}
+	// GenerateFromPassword returns a byte slice so we need to
+	// convert the bytes to a string and return it
+	return string(hash), nil
+}
+
+func comparePasswords(hashedPwd string, plainPwd string) (bool, error) {
+	// Since we'll be getting the hashed password from the DB it
+	// will be a string so we'll need to convert it to a byte slice
+	fmt.Println(hashedPwd, plainPwd)
+	byteHash := []byte(hashedPwd)
+	plainPwdBytes := []byte(plainPwd)
+	err := bcrypt.CompareHashAndPassword(byteHash, plainPwdBytes)
+	if err != nil {
+		return false, fmt.Errorf("[comparePasswords]%w", err)
+	}
+
+	return true, nil
+}
+
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
 	var m proto.ExchangeMessage
@@ -47,6 +78,10 @@ func (s *FSWServer) watcherRoutine() {
 			if !ok {
 				return
 			}
+			//Add connection to pool to be able to control it after
+			c := syncConnection{tlsConnection: connection}
+			s.addToPool(&c)
+
 			go func() {
 				for mess := range connection.MessageChan {
 					err := json.Unmarshal(mess.Bytes(), &m)
@@ -55,29 +90,46 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 					}
 
-					if m.Type != proto.MessageTypeAuthReq && m.AuthKey == "" {
-						s.sendError(mess.Conn(), proto.ErrForbidden)
-						continue
+					if m.Type != proto.MessageTypeAuthReq {
+						if m.AuthKey == "" {
+							s.sendError(mess.Conn(), proto.ErrForbidden)
+							continue
+						}
+						ok, err := s.checkToken(c.clientTokenHash, m.AuthKey)
+						if err != nil {
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							s.extErc <- err
+							continue
+						}
+						if !ok {
+							s.sendError(mess.Conn(), proto.ErrForbidden)
+							continue
+						}
 					}
 
 					if m.Type == proto.MessageTypeAuthReq {
-						if !s.createSession("", "") {
+						user, sessionKey := s.createSession("", "")
+						if sessionKey == "" {
 							s.sendError(mess.Conn(), proto.ErrCodeWrongCreds)
 							continue
 						}
-						err = fselink.SendSyncMessage(mess.Conn(), proto.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"}, proto.MessageTypeAuthAns)
+						c.uid = user
+
+						hash, err := hashAndSaltPassword([]byte(sessionKey))
 						if err != nil {
 							s.extErc <- err
 							continue
 						}
-						fmt.Println("SENT AUTH")
-					} else if m.Type == proto.MessageTypeFullSyncRequest {
-						user, ok := s.checkToken(m.AuthKey)
-						if !ok || user == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
+
+						err = fselink.SendSyncMessage(mess.Conn(), proto.MessageAuthAnswer{Success: true, AuthKey: sessionKey}, proto.MessageTypeAuthAns)
+						if err != nil {
+							s.extErc <- err
 							continue
 						}
-						uo, err := s.stor.GetUsersObjects(user)
+						c.clientTokenHash = hash
+						fmt.Println("SENT AUTH")
+					} else if m.Type == proto.MessageTypeFullSyncRequest {
+						uo, err := s.stor.GetUsersObjects(c.uid)
 						if err != nil {
 							s.extErc <- err
 							continue
@@ -85,7 +137,7 @@ func (s *FSWServer) watcherRoutine() {
 						var l []fse.FSObject
 						for _, ol := range uo {
 							l = append(l, fse.FSObject{
-								Path:      s.ExtractOwnerFromPath(ol.Path, user),
+								Path:      s.ExtractOwnerFromPath(ol.Path, c.uid),
 								Name:      ol.Name,
 								IsDir:     ol.IsDir,
 								Hash:      ol.Hash,
@@ -100,12 +152,6 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 					} else if m.Type == proto.MessageTypeGetFile {
-						user, ok := s.checkToken(m.AuthKey)
-						if !ok || user == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
-							continue
-						}
-
 						var mu proto.MessageGetFile
 						err = fselink.UnpackMessage(m, proto.MessageTypeGetFile, &mu)
 						if err != nil {
@@ -120,7 +166,7 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 
 						fileName := s.fp.GetPathUnescaped(mu.Object)
 						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
@@ -179,12 +225,6 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypePushFile {
-						user, ok := s.checkToken(m.AuthKey)
-						if !ok || user == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
-							continue
-						}
-
 						var mu proto.MessagePushFile
 						err = fselink.UnpackMessage(m, proto.MessageTypePushFile, &mu)
 						if err != nil {
@@ -193,7 +233,7 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 						pathUnescaped := filepath.Join(s.fp.UnescapePath(mu.Object))
 						pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(mu.Object))
 
@@ -238,7 +278,7 @@ func (s *FSWServer) watcherRoutine() {
 							err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
 								Name:        mu.Object.Name,
 								Path:        mu.Object.Path,
-								Owner:       user,
+								Owner:       c.uid,
 								Hash:        mu.Object.Hash,
 								IsDir:       mu.Object.IsDir,
 								Ext:         mu.Object.Ext,
@@ -342,7 +382,7 @@ func (s *FSWServer) watcherRoutine() {
 						err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
 							Name:        mu.Object.Name,
 							Path:        mu.Object.Path,
-							Owner:       user,
+							Owner:       c.uid,
 							Hash:        mu.Object.Hash,
 							IsDir:       mu.Object.IsDir,
 							Ext:         mu.Object.Ext,
@@ -379,12 +419,6 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypeDeleteObject {
-						user, ok := s.checkToken(m.AuthKey)
-						if !ok || user == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
-							continue
-						}
-
 						var mu proto.MessageDeleteObject
 						err = fselink.UnpackMessage(m, proto.MessageTypeDeleteObject, &mu)
 						if err != nil {
@@ -393,7 +427,7 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
 						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
@@ -442,12 +476,12 @@ func (s *FSWServer) watcherRoutine() {
 
 }
 
-func (s *FSWServer) createSession(log, pwd string) bool {
-	return true
+func (s *FSWServer) createSession(log, pwd string) (user, sessionKey string) {
+	return "1", "AUTH_KEY"
 }
 
-func (s *FSWServer) checkToken(t string) (uid string, ok bool) {
-	return "1", true
+func (s *FSWServer) checkToken(hash, token string) (ok bool, err error) {
+	return comparePasswords(hash, token)
 }
 
 func (s *FSWServer) sendError(sm fselink.SyncMessenger, e proto.ErrorCode) {

@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"sync"
+
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
@@ -15,7 +17,9 @@ type FSWServer struct {
 
 	fp fp.Fileprocessor
 
-	connections map[string]*SyncConnection
+	connPool map[string]*syncConnection
+	//connPoolMutex controls connPool
+	connPoolMutex sync.RWMutex
 
 	extEvc chan (fse.FSEvent)
 	evc    chan (fse.FSEvent)
