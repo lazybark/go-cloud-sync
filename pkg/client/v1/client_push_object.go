@@ -13,13 +13,13 @@ func (c *FSWClient) PushObject(obj fse.FSObject) {
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
 	file, err := c.fp.OpenToRead(pathFullUnescaped)
 	if err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
+		c.extErc <- fmt.Errorf("[PUSH TO SERVER]%w", err)
 		return
 	}
 	defer file.Close()
 	err = c.link.PushObject(obj, file)
 	if err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
+		c.extErc <- fmt.Errorf("[PUSH TO SERVER]%w", err)
 		return
 	}
 }
