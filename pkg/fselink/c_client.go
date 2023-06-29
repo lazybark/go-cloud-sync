@@ -117,8 +117,12 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 		fmt.Println("CLIENT: SENT FILE")
 
 		return
+	} else if maa.Type == proto.MessageTypeClose {
+		//We try to close only after server says that we can do it (no more answers expected)
+		return
+	} else {
+		return fmt.Errorf("[PushObject] unexpected answer type '%s'", maa.Type)
 	}
-	return fmt.Errorf("[PushObject] unexpected answer type '%s'", maa.Type)
 }
 
 func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err error) {

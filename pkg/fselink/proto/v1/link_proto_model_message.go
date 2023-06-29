@@ -56,6 +56,7 @@ const (
 	MessageTypePeerReady
 	MessageTypeFileParts
 	MessageTypeFileEnd
+	MessageTypeClose
 
 	message_type_end
 )
@@ -73,6 +74,7 @@ func (t ExchangeMessageType) String() string {
 		"MessageTypePushFile",
 		"MessageTypeFileParts",
 		"MessageTypeFileEnd",
+		"MessageTypeClose",
 	}
 
 	if t <= message_type_start || t >= message_type_end {
