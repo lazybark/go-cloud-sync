@@ -97,6 +97,12 @@ func (s *FSWServer) watcherRoutine() {
 						s.extErc <- err
 						continue
 					}
+
+					if m.Type != proto.MessageTypeAuthReq && m.AuthKey == "" {
+						s.sendError(mess.Conn(), proto.ErrForbidden)
+						continue
+					}
+
 					if m.Type == proto.MessageTypeAuthReq {
 						if !s.createSession("", "") {
 							s.sendError(mess.Conn(), proto.ErrCodeWrongCreds)
