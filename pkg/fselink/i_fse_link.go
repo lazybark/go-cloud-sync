@@ -14,6 +14,7 @@ type FSEClientLink interface {
 	GetObjList() ([]fse.FSObject, error)
 	DownloadObject(obj fse.FSObject, writeTo *os.File) error
 	PushObject(obj fse.FSObject, readFrom *os.File) error
+	DeleteObject(obj fse.FSObject) (err error)
 	SendEvent(e fse.FSEvent) error
 }
 

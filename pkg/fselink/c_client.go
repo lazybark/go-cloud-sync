@@ -54,6 +54,45 @@ func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
 	return l, fmt.Errorf("[GetObjList] unexpected answer type '%s'", maa.Type)
 }
 
+func (sc *SyncClient) DeleteObject(obj fse.FSObject) (err error) {
+	link, err := NewClient()
+	if err != nil {
+		return fmt.Errorf("[DeleteObject]%w", err)
+	}
+
+	err = link.Init(sc.serverPort, sc.serverAddr, sc.login, sc.pwd)
+	if err != nil {
+		return fmt.Errorf("[DeleteObject]%w", err)
+	}
+	defer link.c.Close()
+
+	link.SetAuthKey(sc.akey)
+
+	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypeDeleteObject)
+	if err != nil {
+		return fmt.Errorf("[DeleteObject]%w", err)
+	}
+
+	var maa proto.ExchangeMessage
+	err = AwaitAnswer(link, &maa)
+	if err != nil {
+		return fmt.Errorf("[DeleteObject]%w", err)
+	}
+	if maa.Type == proto.MessageTypeError {
+		var se proto.MessageError
+		err := UnpackMessage(maa, proto.MessageTypeError, &se)
+		if err != nil {
+			return fmt.Errorf("[DeleteObject]%w", err)
+		}
+		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+	} else if maa.Type == proto.MessageTypeClose {
+		//We try to close only after server says that we can do it (no more answers expected)
+		return
+	} else {
+		return fmt.Errorf("[DeleteObject] unexpected answer type '%s'", maa.Type)
+	}
+}
+
 func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error) {
 	link, err := NewClient()
 	if err != nil {

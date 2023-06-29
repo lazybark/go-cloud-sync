@@ -302,6 +302,19 @@ func (s *FSWServer) watcherRoutine() {
 						}
 						continue
 
+					} else if m.Type == proto.MessageTypeDeleteObject {
+						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+						if err != nil {
+							s.extErc <- err
+							continue
+						}
+
+						fmt.Println("DELETED FILE")
+						err = mess.Conn().Close()
+						if err != nil {
+							s.extErc <- err
+						}
+						continue
 					} else {
 						s.sendError(mess.Conn(), proto.ErrUnexpectedMessageType)
 						continue

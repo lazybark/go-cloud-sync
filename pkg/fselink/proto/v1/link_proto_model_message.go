@@ -57,6 +57,7 @@ const (
 	MessageTypeFileParts
 	MessageTypeFileEnd
 	MessageTypeClose
+	MessageTypeDeleteObject
 
 	message_type_end
 )
@@ -75,6 +76,7 @@ func (t ExchangeMessageType) String() string {
 		"MessageTypeFileParts",
 		"MessageTypeFileEnd",
 		"MessageTypeClose",
+		"MessageTypeDeleteObject",
 	}
 
 	if t <= message_type_start || t >= message_type_end {
