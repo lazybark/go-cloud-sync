@@ -68,7 +68,7 @@ func (sc *SyncClient) DeleteObject(obj fse.FSObject) (err error) {
 
 	link.SetAuthKey(sc.akey)
 
-	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypeDeleteObject)
+	err = link.SendSyncMessage(proto.MessageDeleteObject{Object: obj}, proto.MessageTypeDeleteObject)
 	if err != nil {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}

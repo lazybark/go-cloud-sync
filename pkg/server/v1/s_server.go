@@ -309,6 +309,46 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypeDeleteObject {
+						user, ok := s.checkToken(m.AuthKey)
+						if !ok || user == "" {
+							s.sendError(mess.Conn(), proto.ErrForbidden)
+							continue
+						}
+
+						var mu proto.MessageDeleteObject
+						err = fselink.UnpackMessage(m, proto.MessageTypeDeleteObject, &mu)
+						if err != nil {
+							s.sendError(mess.Conn(), proto.ErrMessageReadingFailed)
+							s.extErc <- err
+							continue
+						}
+
+						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+
+						//fileName := s.fp.GetPathUnescaped(mu.Object)
+						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
+						if err != nil && err != storage.ErrNotExists {
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							s.extErc <- err
+							continue
+						}
+
+						if dbObj.ID != 0 {
+							err = s.stor.RemoveObject(dbObj, true)
+							if err != nil && err != storage.ErrNotExists {
+								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								s.extErc <- err
+								continue
+							}
+						}
+
+						err = os.RemoveAll(s.fp.GetPathUnescaped(mu.Object))
+						if err != nil && err != storage.ErrNotExists {
+							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							s.extErc <- err
+							continue
+						}
+
 						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
 						if err != nil {
 							s.extErc <- err

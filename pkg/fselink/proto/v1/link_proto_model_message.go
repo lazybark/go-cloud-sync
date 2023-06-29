@@ -36,6 +36,10 @@ type MessagePushFile struct {
 	Object fse.FSObject
 }
 
+type MessageDeleteObject struct {
+	Object fse.FSObject
+}
+
 type MessageFilePart struct {
 	Payload []byte
 }
