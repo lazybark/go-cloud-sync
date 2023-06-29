@@ -3,14 +3,16 @@ package fselink
 import (
 	"encoding/json"
 	"fmt"
+
+	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 )
 
-func SendSyncMessage(sc SyncMessenger, payload any, mType ExchangeMessageType) error {
+func SendSyncMessage(sc SyncMessenger, payload any, mType proto.ExchangeMessageType) error {
 	plb, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage] %w", err)
 	}
-	mess, err := json.Marshal(ExchangeMessage{Type: mType, Payload: plb})
+	mess, err := json.Marshal(proto.ExchangeMessage{Type: mType, Payload: plb})
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage] %w", err)
 	}
@@ -21,12 +23,12 @@ func SendSyncMessage(sc SyncMessenger, payload any, mType ExchangeMessageType) e
 	return nil
 }
 
-func SendErrorMessage(sc SyncMessenger, e ErrorCode) error {
-	plb, err := json.Marshal(MessageError{Error: e.String(), ErrorCode: e.Int()})
+func SendErrorMessage(sc SyncMessenger, e proto.ErrorCode) error {
+	plb, err := json.Marshal(proto.MessageError{Error: e.String(), ErrorCode: e.Int()})
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage] %w", err)
 	}
-	mess, err := json.Marshal(ExchangeMessage{Type: MessageTypeError, Payload: plb})
+	mess, err := json.Marshal(proto.ExchangeMessage{Type: proto.MessageTypeError, Payload: plb})
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage] %w", err)
 	}
@@ -37,7 +39,7 @@ func SendErrorMessage(sc SyncMessenger, e ErrorCode) error {
 	return nil
 }
 
-func AwaitAnswer(sc SyncReciever, m *ExchangeMessage) error {
+func AwaitAnswer(sc SyncReciever, m *proto.ExchangeMessage) error {
 	ans, err := sc.AwaitAnswer()
 	if err != nil {
 		return fmt.Errorf("[AwaitAnswer] %w", err)
@@ -50,7 +52,7 @@ func AwaitAnswer(sc SyncReciever, m *ExchangeMessage) error {
 	return nil
 }
 
-func UnpackMessage(m ExchangeMessage, expectedType ExchangeMessageType, payload any) error {
+func UnpackMessage(m proto.ExchangeMessage, expectedType proto.ExchangeMessageType, payload any) error {
 	if m.Type != expectedType {
 		return fmt.Errorf("[UnpackMessage] unexpected message type '%s'", m.Type)
 	}

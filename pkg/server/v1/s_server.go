@@ -10,6 +10,7 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
+	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 )
 
@@ -74,7 +75,7 @@ func (s *FSWServer) rescanOnce() {
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
 	var ev fse.FSEvent
-	var m fselink.ExchangeMessage
+	var m proto.ExchangeMessage
 	for {
 		select {
 		case mess, ok := <-s.srvMessChan:
@@ -86,21 +87,21 @@ func (s *FSWServer) watcherRoutine() {
 				s.extErc <- err
 				continue
 			}
-			if m.Type == fselink.MessageTypeAuthReq {
+			if m.Type == proto.MessageTypeAuthReq {
 				if !s.createSession("", "") {
-					s.sendError(mess.Conn(), fselink.ErrCodeWrongCreds)
+					s.sendError(mess.Conn(), proto.ErrCodeWrongCreds)
 					continue
 				}
-				err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"}, fselink.MessageTypeAuthAns)
+				err = fselink.SendSyncMessage(mess.Conn(), proto.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"}, proto.MessageTypeAuthAns)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
 				fmt.Println("SENT AUTH")
-			} else if m.Type == fselink.MessageTypeEvent {
+			} else if m.Type == proto.MessageTypeEvent {
 				user, ok := s.checkToken(m.AuthKey)
 				if !ok || user == "" {
-					s.sendError(mess.Conn(), fselink.ErrForbidden)
+					s.sendError(mess.Conn(), proto.ErrForbidden)
 					continue
 				}
 				err := json.Unmarshal(m.Payload, &ev)
@@ -110,10 +111,10 @@ func (s *FSWServer) watcherRoutine() {
 					//s.extEvc <- ev
 					fmt.Println(ev)
 				}
-			} else if m.Type == fselink.MessageTypeFullSyncRequest {
+			} else if m.Type == proto.MessageTypeFullSyncRequest {
 				user, ok := s.checkToken(m.AuthKey)
 				if !ok || user == "" {
-					s.sendError(mess.Conn(), fselink.ErrForbidden)
+					s.sendError(mess.Conn(), proto.ErrForbidden)
 					continue
 				}
 				uo, err := s.stor.GetUsersObjects(user)
@@ -133,20 +134,20 @@ func (s *FSWServer) watcherRoutine() {
 						UpdatedAt: ol.FSUpdatedAt,
 					})
 				}
-				err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageFullSyncReply{Success: true, Objects: l}, fselink.MessageTypeFullSyncReply)
+				err = fselink.SendSyncMessage(mess.Conn(), proto.MessageFullSyncReply{Success: true, Objects: l}, proto.MessageTypeFullSyncReply)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
-			} else if m.Type == fselink.MessageTypeGetFile {
+			} else if m.Type == proto.MessageTypeGetFile {
 				user, ok := s.checkToken(m.AuthKey)
 				if !ok || user == "" {
-					s.sendError(mess.Conn(), fselink.ErrForbidden)
+					s.sendError(mess.Conn(), proto.ErrForbidden)
 					continue
 				}
 
-				var mu fselink.MessageGetFile
-				err = fselink.UnpackMessage(m, fselink.MessageTypeGetFile, &mu)
+				var mu proto.MessageGetFile
+				err = fselink.UnpackMessage(m, proto.MessageTypeGetFile, &mu)
 				if err != nil {
 					s.extErc <- err
 					continue
@@ -154,7 +155,7 @@ func (s *FSWServer) watcherRoutine() {
 
 				//Do not sync dirs
 				if mu.Object.IsDir {
-					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
+					s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 					continue
 				}
 
@@ -168,13 +169,13 @@ func (s *FSWServer) watcherRoutine() {
 				}
 				//Do not sync dirs (2) - if client's a smartass and still wants it somehow
 				if dbObj.IsDir {
-					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
+					s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 					continue
 				}
 
 				fileData, err := os.Open(fileName)
 				if err != nil {
-					s.sendError(mess.Conn(), fselink.ErrFileReadingFailed)
+					s.sendError(mess.Conn(), proto.ErrFileReadingFailed)
 					continue
 				}
 
@@ -191,11 +192,11 @@ func (s *FSWServer) watcherRoutine() {
 						break
 					}
 					if err != nil {
-						s.sendError(mess.Conn(), fselink.ErrFileReadingFailed)
+						s.sendError(mess.Conn(), proto.ErrFileReadingFailed)
 						break
 					}
 
-					err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageFilePart{Payload: buf[:n]}, fselink.MessageTypeFileParts)
+					err = fselink.SendSyncMessage(mess.Conn(), proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
 					if err != nil {
 						s.extErc <- err
 						break
@@ -203,31 +204,31 @@ func (s *FSWServer) watcherRoutine() {
 				}
 				fileData.Close()
 
-				err = fselink.SendSyncMessage(mess.Conn(), nil, fselink.MessageTypeFileEnd)
+				err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeFileEnd)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
 				fmt.Println("SENT FILE")
 
-			} else if m.Type == fselink.MessageTypePushFile {
+			} else if m.Type == proto.MessageTypePushFile {
 				user, ok := s.checkToken(m.AuthKey)
 				if !ok || user == "" {
-					s.sendError(mess.Conn(), fselink.ErrForbidden)
+					s.sendError(mess.Conn(), proto.ErrForbidden)
 					continue
 				}
 
-				var mu fselink.MessagePushFile
-				err = fselink.UnpackMessage(m, fselink.MessageTypePushFile, &mu)
+				var mu proto.MessagePushFile
+				err = fselink.UnpackMessage(m, proto.MessageTypePushFile, &mu)
 				if err != nil {
-					s.sendError(mess.Conn(), fselink.ErrMessageReadingFailed)
+					s.sendError(mess.Conn(), proto.ErrMessageReadingFailed)
 					s.extErc <- err
 					continue
 				}
 
 				//Do not sync dirs
 				if mu.Object.IsDir {
-					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
+					s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 					continue
 				}
 
@@ -236,7 +237,7 @@ func (s *FSWServer) watcherRoutine() {
 				//fileName := s.fp.GetPathUnescaped(mu.Object)
 				dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
 				if err != nil && err != storage.ErrNotExists {
-					s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+					s.sendError(mess.Conn(), proto.ErrInternalServerError)
 					s.extErc <- err
 					continue
 				}
@@ -245,29 +246,29 @@ func (s *FSWServer) watcherRoutine() {
 					err = s.stor.LockObject(mu.Object.Path, mu.Object.Name)
 					if err != nil {
 						s.extErc <- err
-						s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+						s.sendError(mess.Conn(), proto.ErrInternalServerError)
 						continue
 					}
 				}
 
-				err = fselink.SendSyncMessage(mess.Conn(), nil, fselink.MessageTypePeerReady)
+				err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypePeerReady)
 				if err != nil {
 					s.extErc <- err
 					continue
 				}
 
-				if dbObj.ID != 0 {
+				/*if dbObj.ID != 0 {
 					err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
 					if err != nil {
 						s.extErc <- err
-						s.sendError(mess.Conn(), fselink.ErrInternalServerError)
+						s.sendError(mess.Conn(), proto.ErrInternalServerError)
 						continue
 					}
-				}
+				}*/
 
 				fmt.Println("DOWNLOADED FILE")
 			} else {
-				s.sendError(mess.Conn(), fselink.ErrUnexpectedMessageType)
+				s.sendError(mess.Conn(), proto.ErrUnexpectedMessageType)
 				continue
 			}
 		case err, ok := <-s.srvErrChan:
@@ -295,7 +296,7 @@ func (s *FSWServer) checkToken(t string) (uid string, ok bool) {
 	return "1", true
 }
 
-func (s *FSWServer) sendError(sm fselink.SyncMessenger, e fselink.ErrorCode) {
+func (s *FSWServer) sendError(sm fselink.SyncMessenger, e proto.ErrorCode) {
 	err := fselink.SendErrorMessage(sm, e)
 	if err != nil {
 		s.extErc <- err

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-tls-server/v2/client"
 )
 
@@ -17,27 +18,27 @@ func NewClient() (*SyncClient, error) {
 }
 
 func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
-	err = SendSyncMessage(sc, nil, MessageTypeFullSyncRequest)
+	err = SendSyncMessage(sc, nil, proto.MessageTypeFullSyncRequest)
 	if err != nil {
 		err = fmt.Errorf("[GetObjList] %w", err)
 		return
 	}
-	var maa ExchangeMessage
+	var maa proto.ExchangeMessage
 	err = AwaitAnswer(sc, &maa)
 	if err != nil {
 		err = fmt.Errorf("[GetObjList] %w", err)
 		return
 	}
-	if maa.Type == MessageTypeError {
-		var se MessageError
-		err = UnpackMessage(maa, MessageTypeError, &se)
+	if maa.Type == proto.MessageTypeError {
+		var se proto.MessageError
+		err = UnpackMessage(maa, proto.MessageTypeError, &se)
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
 		return l, fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
-	} else if maa.Type == MessageTypeFullSyncReply {
-		var sm MessageFullSyncReply
-		err = UnpackMessage(maa, MessageTypeFullSyncReply, &sm)
+	} else if maa.Type == proto.MessageTypeFullSyncReply {
+		var sm proto.MessageFullSyncReply
+		err = UnpackMessage(maa, proto.MessageTypeFullSyncReply, &sm)
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
@@ -66,24 +67,24 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 		return fmt.Errorf("[PushObject]%w", err)
 	}
 
-	err = SendSyncMessage(link, MessageGetFile{Object: obj}, MessageTypePushFile)
+	err = SendSyncMessage(link, proto.MessageGetFile{Object: obj}, proto.MessageTypePushFile)
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)
 	}
 
-	var maa ExchangeMessage
+	var maa proto.ExchangeMessage
 	err = AwaitAnswer(link, &maa)
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)
 	}
-	if maa.Type == MessageTypeError {
-		var se MessageError
-		err := UnpackMessage(maa, MessageTypeError, &se)
+	if maa.Type == proto.MessageTypeError {
+		var se proto.MessageError
+		err := UnpackMessage(maa, proto.MessageTypeError, &se)
 		if err != nil {
 			return fmt.Errorf("[PushObject]%w", err)
 		}
 		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
-	} else if maa.Type == MessageTypePeerReady {
+	} else if maa.Type == proto.MessageTypePeerReady {
 		fmt.Println("PEER READY")
 
 		// TLS record size can be up to 16KB but some extra bytes may apply
@@ -102,14 +103,14 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 				return fmt.Errorf("[PushObject]%w", err)
 			}
 
-			err = SendSyncMessage(link, MessageFilePart{Payload: buf[:n]}, MessageTypeFileParts)
+			err = SendSyncMessage(link, proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
 			if err != nil {
 				return fmt.Errorf("[PushObject]%w", err)
 			}
 		}
 		fileData.Close()
 
-		err = SendSyncMessage(link, nil, MessageTypeFileEnd)
+		err = SendSyncMessage(link, nil, proto.MessageTypeFileEnd)
 		if err != nil {
 			return fmt.Errorf("[PushObject]%w", err)
 		}
@@ -137,27 +138,27 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
 
-	err = SendSyncMessage(link, MessageGetFile{Object: obj}, MessageTypeGetFile)
+	err = SendSyncMessage(link, proto.MessageGetFile{Object: obj}, proto.MessageTypeGetFile)
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
 
-	var maa ExchangeMessage
+	var maa proto.ExchangeMessage
 	for {
 		err = AwaitAnswer(link, &maa)
 		if err != nil {
 			return fmt.Errorf("[DownloadObject]%w", err)
 		}
-		if maa.Type == MessageTypeError {
-			var se MessageError
-			err := UnpackMessage(maa, MessageTypeError, &se)
+		if maa.Type == proto.MessageTypeError {
+			var se proto.MessageError
+			err := UnpackMessage(maa, proto.MessageTypeError, &se)
 			if err != nil {
 				return fmt.Errorf("[ConnectAndAuth]%w", err)
 			}
 			return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
-		} else if maa.Type == MessageTypeFileParts {
-			var m MessageFilePart
-			err := UnpackMessage(maa, MessageTypeFileParts, &m)
+		} else if maa.Type == proto.MessageTypeFileParts {
+			var m proto.MessageFilePart
+			err := UnpackMessage(maa, proto.MessageTypeFileParts, &m)
 			if err != nil {
 				return fmt.Errorf("[ConnectAndAuth]%w", err)
 			}
@@ -166,7 +167,7 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 				return fmt.Errorf("[DownloadObject]%w", err)
 			}
 
-		} else if maa.Type == MessageTypeFileEnd {
+		} else if maa.Type == proto.MessageTypeFileEnd {
 			return nil
 		} else {
 			return fmt.Errorf("[DownloadObject] unexpected answer type '%s'", maa.Type)
@@ -200,6 +201,6 @@ func (sc *SyncClient) AwaitAnswer() (*client.Message, error) {
 	return ans, nil
 }
 
-func (sc *SyncClient) compileMessageBody(t ExchangeMessageType) ExchangeMessage {
-	return ExchangeMessage{Type: t, AuthKey: sc.akey, Payload: []byte{}}
+func (sc *SyncClient) compileMessageBody(t proto.ExchangeMessageType) proto.ExchangeMessage {
+	return proto.ExchangeMessage{Type: t, AuthKey: sc.akey, Payload: []byte{}}
 }

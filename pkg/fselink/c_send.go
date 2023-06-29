@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 )
 
 func (sc *SyncClient) SendEvent(e fse.FSEvent) error {
@@ -13,7 +14,7 @@ func (sc *SyncClient) SendEvent(e fse.FSEvent) error {
 		return fmt.Errorf("[SendEvent][MarshalEvent] %w", err)
 	}
 
-	m := sc.compileMessageBody(MessageTypeEvent)
+	m := sc.compileMessageBody(proto.MessageTypeEvent)
 	m.Payload = ej
 	mj, err := json.Marshal(m)
 	if err != nil {

@@ -16,6 +16,7 @@ func (c *FSWClient) PushObject(obj fse.FSObject) {
 		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
 		return
 	}
+	defer file.Close()
 	err = c.link.PushObject(obj, file)
 	if err != nil {
 		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)

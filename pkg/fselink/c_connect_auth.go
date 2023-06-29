@@ -1,6 +1,10 @@
 package fselink
 
-import "fmt"
+import (
+	"fmt"
+
+	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
+)
 
 func (sc *SyncClient) ConnectAndAuth() error {
 	err := sc.c.DialTo(sc.serverAddr, sc.serverPort, `certs/cert.pem`)
@@ -9,26 +13,26 @@ func (sc *SyncClient) ConnectAndAuth() error {
 	}
 
 	//At first we send credentials to get auth key
-	err = SendSyncMessage(sc, Credentials{Login: sc.login, Password: sc.pwd}, MessageTypeAuthReq)
+	err = SendSyncMessage(sc, proto.Credentials{Login: sc.login, Password: sc.pwd}, proto.MessageTypeAuthReq)
 	if err != nil {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}
 
-	var maa ExchangeMessage
+	var maa proto.ExchangeMessage
 	err = AwaitAnswer(sc, &maa)
 	if err != nil {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}
-	if maa.Type == MessageTypeError {
-		var se MessageError
-		err := UnpackMessage(maa, MessageTypeError, &se)
+	if maa.Type == proto.MessageTypeError {
+		var se proto.MessageError
+		err := UnpackMessage(maa, proto.MessageTypeError, &se)
 		if err != nil {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
 		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
-	} else if maa.Type == MessageTypeAuthAns {
-		var sm MessageAuthAnswer
-		err := UnpackMessage(maa, MessageTypeAuthAns, &sm)
+	} else if maa.Type == proto.MessageTypeAuthAns {
+		var sm proto.MessageAuthAnswer
+		err := UnpackMessage(maa, proto.MessageTypeAuthAns, &sm)
 		if err != nil {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
