@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	gts "github.com/lazybark/go-tls-server/v2/server"
+	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
 func NewServer() FSEServerPool {
@@ -42,9 +42,6 @@ func (s *SyncServer) Listen(addr, port string) error {
 				s.extErrChan <- err
 			case conn := <-srv.ConnChan:
 				s.extConnChan <- conn
-			case m := <-srv.MessageChan:
-				s.extMessChan <- m
-
 			}
 		}
 	}()

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	gts "github.com/lazybark/go-tls-server/v2/server"
+	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
 // FSEClientLink is used by clients to connect to a server
