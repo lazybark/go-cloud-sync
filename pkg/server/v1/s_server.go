@@ -33,46 +33,6 @@ func (s *FSWServer) GetOwnerFromPath(p string) string {
 	}
 }
 
-func (s *FSWServer) ReadLocalObjects() (objs []storage.FSObjectStored, err error) {
-	local, err := s.fp.ProcessDirectory(s.conf.root)
-	if err != nil {
-		return nil, fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
-	}
-	for _, o := range local {
-		if o.Path == "?ROOT_DIR?" {
-			//Ignore all objs in server root
-			continue
-		}
-		objs = append(objs, storage.FSObjectStored{
-			Path:        o.Path,
-			Name:        o.Name,
-			IsDir:       o.IsDir,
-			Hash:        o.Hash,
-			Owner:       s.GetOwnerFromPath(o.Path),
-			Ext:         o.Ext,
-			Size:        o.Size,
-			FSUpdatedAt: o.UpdatedAt,
-		})
-	}
-	return
-}
-
-func (s *FSWServer) rescanOnce() {
-	local, err := s.ReadLocalObjects()
-	if err != nil {
-		s.extErc <- fmt.Errorf("[rescanOnce]%w", err)
-		return
-	}
-	fmt.Printf("Root directory read. Found %d objects\n", len(local))
-
-	err = s.stor.RefillDatabase(local)
-	if err != nil {
-		s.extErc <- fmt.Errorf("[rescanOnce]%w", err)
-		return
-	}
-	fmt.Println("Database refilled")
-}
-
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
 	var ev fse.FSEvent
@@ -88,9 +48,6 @@ func (s *FSWServer) watcherRoutine() {
 			if !ok {
 				return
 			}
-			fmt.Println("NEW CONNECTION:")
-			fmt.Println(connection)
-			fmt.Println()
 			go func() {
 				for mess := range connection.MessageChan {
 					err := json.Unmarshal(mess.Bytes(), &m)
