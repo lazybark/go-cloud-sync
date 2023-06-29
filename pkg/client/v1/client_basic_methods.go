@@ -7,7 +7,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 )
 
-func (c *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error)) error {
+func (c *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error), login, pwd string) error {
 	c.extEvChannel = evc
 	c.extErc = erc
 	c.ActionsBuffer = make(map[string]bool)
@@ -17,7 +17,7 @@ func (c *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error)) error {
 		return fmt.Errorf("[SYNC][INIT] can not start watcher: %w", err)
 	}
 
-	err = c.link.Init(5555, "localhost", "log", "pass")
+	err = c.link.Init(5555, "localhost", login, pwd)
 	if err != nil {
 		return fmt.Errorf("[SYNC][INIT] can not connect to server: %w", err)
 	}

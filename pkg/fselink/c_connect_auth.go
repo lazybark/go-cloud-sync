@@ -13,7 +13,7 @@ func (sc *SyncClient) ConnectAndAuth() error {
 	}
 
 	//At first we send credentials to get auth key
-	err = SendSyncMessage(sc, proto.Credentials{Login: sc.login, Password: sc.pwd}, proto.MessageTypeAuthReq)
+	err = sc.SendSyncMessage(proto.Credentials{Login: sc.login, Password: sc.pwd}, proto.MessageTypeAuthReq)
 	if err != nil {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}

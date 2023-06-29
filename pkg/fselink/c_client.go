@@ -17,8 +17,12 @@ func NewClient() (*SyncClient, error) {
 	return c, nil
 }
 
+func (sc *SyncClient) SetAuthKey(k string) {
+	sc.akey = k
+}
+
 func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
-	err = SendSyncMessage(sc, nil, proto.MessageTypeFullSyncRequest)
+	err = sc.SendSyncMessage(nil, proto.MessageTypeFullSyncRequest)
 	if err != nil {
 		err = fmt.Errorf("[GetObjList] %w", err)
 		return
@@ -62,12 +66,9 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 	}
 	defer link.c.Close()
 
-	err = link.ConnectAndAuth()
-	if err != nil {
-		return fmt.Errorf("[PushObject]%w", err)
-	}
+	link.SetAuthKey(sc.akey)
 
-	err = SendSyncMessage(link, proto.MessageGetFile{Object: obj}, proto.MessageTypePushFile)
+	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypePushFile)
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)
 	}
@@ -103,14 +104,14 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 				return fmt.Errorf("[PushObject]%w", err)
 			}
 
-			err = SendSyncMessage(link, proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
+			err = link.SendSyncMessage(proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
 			if err != nil {
 				return fmt.Errorf("[PushObject]%w", err)
 			}
 		}
 		fileData.Close()
 
-		err = SendSyncMessage(link, nil, proto.MessageTypeFileEnd)
+		err = link.SendSyncMessage(nil, proto.MessageTypeFileEnd)
 		if err != nil {
 			return fmt.Errorf("[PushObject]%w", err)
 		}
@@ -137,12 +138,10 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 	}
 	defer link.c.Close()
 
-	err = link.ConnectAndAuth()
-	if err != nil {
-		return fmt.Errorf("[DownloadObject]%w", err)
-	}
+	link.SetAuthKey(sc.akey)
+	fmt.Println("[DownloadObject]", link.akey)
 
-	err = SendSyncMessage(link, proto.MessageGetFile{Object: obj}, proto.MessageTypeGetFile)
+	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypeGetFile)
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
@@ -157,14 +156,14 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 			var se proto.MessageError
 			err := UnpackMessage(maa, proto.MessageTypeError, &se)
 			if err != nil {
-				return fmt.Errorf("[ConnectAndAuth]%w", err)
+				return fmt.Errorf("[DownloadObject]%w", err)
 			}
 			return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
 		} else if maa.Type == proto.MessageTypeFileParts {
 			var m proto.MessageFilePart
 			err := UnpackMessage(maa, proto.MessageTypeFileParts, &m)
 			if err != nil {
-				return fmt.Errorf("[ConnectAndAuth]%w", err)
+				return fmt.Errorf("[DownloadObject]%w", err)
 			}
 			_, err = destFile.Write(m.Payload)
 			if err != nil {
