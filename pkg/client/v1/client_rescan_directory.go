@@ -8,10 +8,12 @@ func (c *FSWClient) rescanOnce() {
 	local, err := c.GetLocalObjects()
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] getting local objects: %w", err)
+		return
 	}
 	objsOnServer, err := c.GetServerObjList()
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] Getting server objects: %w", err)
+		return
 	}
 	/*	fmt.Println("++++++++++++++++++")
 		fmt.Println(objsOnServer)
@@ -19,6 +21,7 @@ func (c *FSWClient) rescanOnce() {
 	download, created, updated, err := c.GetDiffListWithServer(local, objsOnServer)
 	if err != nil {
 		c.extErc <- fmt.Errorf("[SCAN DIR] checking for differences: %w", err)
+		return
 	}
 	//fmt.Println("TO DOWNLOAD")
 	for _, o := range download {

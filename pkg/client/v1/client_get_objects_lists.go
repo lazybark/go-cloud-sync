@@ -9,8 +9,7 @@ import (
 func (c *FSWClient) GetServerObjList() (l []fse.FSObject, err error) {
 	l, err = c.link.GetObjList()
 	if err != nil {
-		err = fmt.Errorf("[FSWATCHER][GetServerObjList]: %w", err)
-		return
+		return l, fmt.Errorf("[GetServerObjList]: %w", err)
 	}
 
 	return
@@ -19,7 +18,7 @@ func (c *FSWClient) GetServerObjList() (l []fse.FSObject, err error) {
 func (c *FSWClient) GetLocalObjects() (objs []fse.FSObject, err error) {
 	objs, err = c.fp.ProcessDirectory(c.cfg.Root)
 	if err != nil {
-		err = fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
+		err = fmt.Errorf("[DiffListWithServer]: %w", err)
 		return
 	}
 	/*for _, o := range objs {
