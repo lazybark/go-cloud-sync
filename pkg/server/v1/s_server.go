@@ -152,6 +152,12 @@ func (s *FSWServer) watcherRoutine() {
 					continue
 				}
 
+				//Do not sync dirs
+				if mu.Object.IsDir {
+					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
+					continue
+				}
+
 				mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
 
 				fileName := s.fp.GetPathUnescaped(mu.Object)
@@ -160,6 +166,7 @@ func (s *FSWServer) watcherRoutine() {
 					s.extErc <- err
 					continue
 				}
+				//Do not sync dirs (2) - if client's a smartass and still wants it somehow
 				if stat.IsDir() {
 					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
 					continue
