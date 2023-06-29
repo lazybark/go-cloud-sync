@@ -168,7 +168,8 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						//Do not sync dirs
+						//Do not SEND dirs
+						//Client should create dir after full sync request
 						if mu.Object.IsDir {
 							s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 							continue
@@ -182,7 +183,7 @@ func (s *FSWServer) watcherRoutine() {
 							s.extErc <- err
 							continue
 						}
-						//Do not sync dirs (2) - if client's a smartass and still wants it somehow
+						//Do not SEND dirs (2) - if client's a smartass and still wants it somehow
 						if dbObj.IsDir {
 							s.sendError(mess.Conn(), proto.ErrWrongObjectType)
 							continue
@@ -247,12 +248,6 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						//Do not sync dirs
-						if mu.Object.IsDir {
-							s.sendError(mess.Conn(), proto.ErrWrongObjectType)
-							continue
-						}
-
 						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
 
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
@@ -270,6 +265,17 @@ func (s *FSWServer) watcherRoutine() {
 								s.sendError(mess.Conn(), proto.ErrInternalServerError)
 								continue
 							}
+							//Do not sync dirs
+							if mu.Object.IsDir {
+								//UPDATE DIR HERE
+								//s.sendError(mess.Conn(), proto.ErrWrongObjectType)
+								continue
+							}
+						}
+						if mu.Object.IsDir {
+							//CREATE DIR HERE
+							//s.sendError(mess.Conn(), proto.ErrWrongObjectType)
+							continue
 						}
 
 						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypePeerReady)
