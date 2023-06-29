@@ -13,8 +13,7 @@ import (
 
 func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
 	s := &SQLiteStorage{
-		escSymbol:  escSymbol,
-		rootSymbol: "?ROOT_DIR?",
+		escSymbol: escSymbol,
 	}
 
 	db, err := gorm.Open(sqlite.Open("fs_watcher_server.db"), &gorm.Config{Logger: gLogger.New(
@@ -35,9 +34,8 @@ func NewSQLite(path, escSymbol string) (*SQLiteStorage, error) {
 }
 
 type SQLiteStorage struct {
-	db         *gorm.DB
-	escSymbol  string
-	rootSymbol string
+	db        *gorm.DB
+	escSymbol string
 }
 
 func (s *SQLiteStorage) RefillDatabase(objs []storage.FSObjectStored) error {

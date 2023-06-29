@@ -52,6 +52,10 @@ type MessageGetFile struct {
 	Object fse.FSObject
 }
 
+type MessagePushFile struct {
+	Object fse.FSObject
+}
+
 type MessageFilePart struct {
 	Payload []byte
 }

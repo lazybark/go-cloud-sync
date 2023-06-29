@@ -8,61 +8,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
-	"github.com/lazybark/go-cloud-sync/pkg/watcher"
-	gts "github.com/lazybark/go-tls-server/v2/server"
 )
 
-// NewServer returns new filesystem watcher
-func NewServer(stor storage.IStorage) *FSWServer {
-	s := &FSWServer{}
-
-	s.evc = make(chan (fse.FSEvent))
-	s.erc = make(chan (error)) //Not used for now
-	s.srvConnChan = make(chan *gts.Connection)
-	s.srvErrChan = make(chan error)
-	s.srvMessChan = make(chan *gts.Message)
-
-	s.w = watcher.NewWatcher()
-	s.stor = stor
-	s.htsrv = fselink.NewServer()
-
-	return s
+func (s *FSWServer) ExtractOwnerFromPath(p string, o string) string {
+	dirs := strings.Split(p, s.conf.escSymbol)
+	if len(dirs) < 2 {
+		return p
+	} else {
+		return strings.ReplaceAll(p, "?ROOT_DIR?,"+o, "?ROOT_DIR?")
+	}
 }
 
-// Init sets initial config to the Watcher
-func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error {
-	s.conf.root = root
-	s.conf.cacheRoot = cacheRoot
-	s.conf.host = host
-	s.conf.port = port
-	s.conf.escSymbol = escSymbol
-	s.extEvc = evc
-	s.extErc = erc
-
-	s.fp = fp.NewFPv1(escSymbol, root, cacheRoot)
-
-	err := s.w.Init(root, s.extEvc, s.extErc)
-	if err != nil {
-		return fmt.Errorf("[INIT]: %w", err)
-	}
-
-	err = s.htsrv.Init(s.srvMessChan, s.srvConnChan, s.srvErrChan)
-	if err != nil {
-		return fmt.Errorf("[INIT]: %w", err)
-	}
-
-	fmt.Printf("Server started on %s:%s\n", host, port)
-	fmt.Printf("Root path:%s\n", root)
-	fmt.Printf("Cache path:%s\n", cacheRoot)
-
-	return nil
-}
-
-func (s *FSWServer) ExtractOwnerFromPath(p string) string {
+func (s *FSWServer) GetOwnerFromPath(p string) string {
 	dirs := strings.Split(p, s.conf.escSymbol)
 	if len(dirs) < 2 {
 		return ""
@@ -86,28 +46,13 @@ func (s *FSWServer) ReadLocalObjects() (objs []storage.FSObjectStored, err error
 			Name:        o.Name,
 			IsDir:       o.IsDir,
 			Hash:        o.Hash,
-			Owner:       s.ExtractOwnerFromPath(o.Path),
+			Owner:       s.GetOwnerFromPath(o.Path),
 			Ext:         o.Ext,
 			Size:        o.Size,
 			FSUpdatedAt: o.UpdatedAt,
 		})
 	}
 	return
-}
-
-// Start launches the filesystem watcher routine. You need to call Init() before.
-func (s *FSWServer) Start() error {
-	s.rescanOnce()
-	fmt.Println("Root directory processed")
-
-	go s.htsrv.Listen(s.conf.host, s.conf.port)
-	go s.watcherRoutine()
-	s.isActive = true
-	err := s.w.Start()
-	if err != nil {
-		return fmt.Errorf("[SERVER][START]%w", err)
-	}
-	return nil
 }
 
 func (s *FSWServer) rescanOnce() {
@@ -126,23 +71,6 @@ func (s *FSWServer) rescanOnce() {
 	fmt.Println("Database refilled")
 }
 
-// Stop stops the filesystem watcher and closes all channels
-func (s *FSWServer) Stop() error {
-	err := s.w.Stop()
-	if err != nil {
-		return fmt.Errorf("[STOP] can not stop watcher: %w", err)
-	}
-	close(s.extEvc)
-	close(s.extErc)
-	close(s.evc)
-	close(s.erc)
-
-	s.isActive = false
-	fmt.Println("Server stopped")
-
-	return nil
-}
-
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
 	var ev fse.FSEvent
@@ -159,12 +87,8 @@ func (s *FSWServer) watcherRoutine() {
 				continue
 			}
 			if m.Type == fselink.MessageTypeAuthReq {
-				if !s.checkCredentials("", "") {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrCodeWrongCreds)
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
+				if !s.createSession("", "") {
+					s.sendError(mess.Conn(), fselink.ErrCodeWrongCreds)
 					continue
 				}
 				err = fselink.SendSyncMessage(mess.Conn(), fselink.MessageAuthAnswer{Success: true, AuthKey: "SOMEKEY"}, fselink.MessageTypeAuthAns)
@@ -174,12 +98,9 @@ func (s *FSWServer) watcherRoutine() {
 				}
 				fmt.Println("SENT AUTH")
 			} else if m.Type == fselink.MessageTypeEvent {
-				if !s.checkToken(m.AuthKey, m.AuthKey) {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
+				user, ok := s.checkToken(m.AuthKey)
+				if !ok || user == "" {
+					s.sendError(mess.Conn(), fselink.ErrForbidden)
 					continue
 				}
 				err := json.Unmarshal(m.Payload, &ev)
@@ -190,15 +111,12 @@ func (s *FSWServer) watcherRoutine() {
 					fmt.Println(ev)
 				}
 			} else if m.Type == fselink.MessageTypeFullSyncRequest {
-				if !s.checkToken(m.AuthKey, m.AuthKey) {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
+				user, ok := s.checkToken(m.AuthKey)
+				if !ok || user == "" {
+					s.sendError(mess.Conn(), fselink.ErrForbidden)
 					continue
 				}
-				uo, err := s.stor.GetUsersObjects("1")
+				uo, err := s.stor.GetUsersObjects(user)
 				if err != nil {
 					s.extErc <- err
 					continue
@@ -206,7 +124,7 @@ func (s *FSWServer) watcherRoutine() {
 				var l []fse.FSObject
 				for _, ol := range uo {
 					l = append(l, fse.FSObject{
-						Path:      ol.Path,
+						Path:      s.ExtractOwnerFromPath(ol.Path, user),
 						Name:      ol.Name,
 						IsDir:     ol.IsDir,
 						Hash:      ol.Hash,
@@ -221,15 +139,11 @@ func (s *FSWServer) watcherRoutine() {
 					continue
 				}
 			} else if m.Type == fselink.MessageTypeGetFile {
-				if !s.checkToken(m.AuthKey, m.AuthKey) {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrForbidden)
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
+				user, ok := s.checkToken(m.AuthKey)
+				if !ok || user == "" {
+					s.sendError(mess.Conn(), fselink.ErrForbidden)
 					continue
 				}
-				//user := "1"
 
 				var mu fselink.MessageGetFile
 				err = fselink.UnpackMessage(m, fselink.MessageTypeGetFile, &mu)
@@ -238,6 +152,8 @@ func (s *FSWServer) watcherRoutine() {
 					continue
 				}
 
+				mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+user)
+
 				fileName := s.fp.GetPathUnescaped(mu.Object)
 				stat, err := os.Stat(fileName)
 				if err != nil {
@@ -245,20 +161,13 @@ func (s *FSWServer) watcherRoutine() {
 					continue
 				}
 				if stat.IsDir() {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrWrongObjectType)
-					if err != nil {
-						s.extErc <- err
-						continue
-					}
+					s.sendError(mess.Conn(), fselink.ErrWrongObjectType)
 					continue
 				}
 
 				fileData, err := os.Open(fileName)
 				if err != nil {
-					err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrFileReadingFailed)
-					if err != nil {
-						s.extErc <- err
-					}
+					s.sendError(mess.Conn(), fselink.ErrFileReadingFailed)
 					continue
 				}
 
@@ -275,10 +184,7 @@ func (s *FSWServer) watcherRoutine() {
 						break
 					}
 					if err != nil {
-						err := fselink.SendErrorMessage(mess.Conn(), fselink.ErrFileReadingFailed)
-						if err != nil {
-							s.extErc <- err
-						}
+						s.sendError(mess.Conn(), fselink.ErrFileReadingFailed)
 						break
 					}
 
@@ -317,10 +223,17 @@ func (s *FSWServer) watcherRoutine() {
 
 }
 
-func (s *FSWServer) checkCredentials(log, pwd string) bool {
+func (s *FSWServer) createSession(log, pwd string) bool {
 	return true
 }
 
-func (s *FSWServer) checkToken(t string, ct string) bool {
-	return t == ct
+func (s *FSWServer) checkToken(t string) (uid string, ok bool) {
+	return "1", true
+}
+
+func (s *FSWServer) sendError(sm fselink.SyncMessenger, e fselink.ErrorCode) {
+	err := fselink.SendErrorMessage(sm, e)
+	if err != nil {
+		s.extErc <- err
+	}
 }

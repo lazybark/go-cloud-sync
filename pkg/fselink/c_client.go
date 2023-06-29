@@ -52,7 +52,6 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}
-	fmt.Println("LinkID:", link)
 
 	err = link.Init(sc.serverPort, sc.serverAddr, sc.login, sc.pwd)
 	if err != nil {

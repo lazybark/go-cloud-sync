@@ -35,7 +35,6 @@ func (c *FSWClient) DownloadObject(obj fse.FSObject) {
 	}
 	file.Close()
 	//Moving from cache to real place
-	//c.fp.GetPathUnescaped(obj)
 	if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
 		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
 		err = c.fp.DeleteFileInCache(file.Name())
