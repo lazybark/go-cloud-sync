@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
@@ -109,30 +108,13 @@ func (s *FSWServer) watcherRoutine() {
 					}
 
 					if m.Type == proto.MessageTypeAuthReq {
+
 						s.processAuth("", "", &c)
+
 					} else if m.Type == proto.MessageTypeFullSyncRequest {
-						uo, err := s.stor.GetUsersObjects(c.uid)
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
-						var l []fse.FSObject
-						for _, ol := range uo {
-							l = append(l, fse.FSObject{
-								Path:      s.ExtractOwnerFromPath(ol.Path, c.uid),
-								Name:      ol.Name,
-								IsDir:     ol.IsDir,
-								Hash:      ol.Hash,
-								Ext:       ol.Ext,
-								Size:      ol.Size,
-								UpdatedAt: ol.FSUpdatedAt,
-							})
-						}
-						err = fselink.SendSyncMessage(mess.Conn(), proto.MessageFullSyncReply{Success: true, Objects: l}, proto.MessageTypeFullSyncReply)
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
+
+						s.processFullSyncRequest(&c)
+
 					} else if m.Type == proto.MessageTypeGetFile {
 						var mu proto.MessageGetFile
 						err = fselink.UnpackMessage(m, proto.MessageTypeGetFile, &mu)
