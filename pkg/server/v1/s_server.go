@@ -90,6 +90,7 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 					}
 
+					//Security checks
 					if m.Type != proto.MessageTypeAuthReq {
 						if m.AuthKey == "" {
 							s.sendError(mess.Conn(), proto.ErrForbidden)
@@ -108,26 +109,7 @@ func (s *FSWServer) watcherRoutine() {
 					}
 
 					if m.Type == proto.MessageTypeAuthReq {
-						user, sessionKey := s.createSession("", "")
-						if sessionKey == "" {
-							s.sendError(mess.Conn(), proto.ErrCodeWrongCreds)
-							continue
-						}
-						c.uid = user
-
-						hash, err := hashAndSaltPassword([]byte(sessionKey))
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
-
-						err = fselink.SendSyncMessage(mess.Conn(), proto.MessageAuthAnswer{Success: true, AuthKey: sessionKey}, proto.MessageTypeAuthAns)
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
-						c.clientTokenHash = hash
-						fmt.Println("SENT AUTH")
+						s.processAuth("", "", &c)
 					} else if m.Type == proto.MessageTypeFullSyncRequest {
 						uo, err := s.stor.GetUsersObjects(c.uid)
 						if err != nil {
