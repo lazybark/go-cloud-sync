@@ -8,7 +8,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
-func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
+func (s *FSWServer) processDelete(c *SyncConnection, m proto.ExchangeMessage) {
 	a, err := m.ReadObjectData()
 	if err != nil {
 		c.SendError(proto.ErrMessageReadingFailed)

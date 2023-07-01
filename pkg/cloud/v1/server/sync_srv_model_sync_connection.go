@@ -8,13 +8,13 @@ import (
 	"github.com/lazybark/go-tls-server/v3/server"
 )
 
-type syncConnection struct {
+type SyncConnection struct {
 	uid             string
 	clientTokenHash string
 	tlsConnection   *server.Connection
 }
 
-func (sc *syncConnection) Await() (proto.ExchangeMessage, error) {
+func (sc *SyncConnection) Await() (proto.ExchangeMessage, error) {
 	var m proto.ExchangeMessage
 	ans := <-sc.tlsConnection.MessageChan
 	err := json.Unmarshal(ans.Bytes(), &m)
@@ -24,15 +24,19 @@ func (sc *syncConnection) Await() (proto.ExchangeMessage, error) {
 	return m, nil
 }
 
-func (sc *syncConnection) ID() string {
+func (sc *SyncConnection) ID() string {
 	return sc.tlsConnection.Id()
 }
 
-func (sc *syncConnection) Close() {
+func (sc *SyncConnection) IsClosed() bool {
+	return sc.tlsConnection.Closed()
+}
+
+func (sc *SyncConnection) Close() {
 	sc.tlsConnection.Close()
 }
 
-func (sc *syncConnection) SendMessage(payload any, mType proto.ExchangeMessageType) error {
+func (sc *SyncConnection) SendMessage(payload any, mType proto.ExchangeMessageType) error {
 	plb, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("[SendMessage] %w", err)
@@ -48,7 +52,7 @@ func (sc *syncConnection) SendMessage(payload any, mType proto.ExchangeMessageTy
 	return nil
 }
 
-func (sc *syncConnection) SendError(e proto.ErrorCode) error {
+func (sc *SyncConnection) SendError(e proto.ErrorCode) error {
 	pLoad := proto.MessageError{Error: e.String(), ErrorCode: e.Int()}
 
 	err := sc.SendMessage(pLoad, proto.MessageTypeError)
@@ -58,14 +62,14 @@ func (sc *syncConnection) SendError(e proto.ErrorCode) error {
 	return nil
 }
 
-func (s *FSWServer) addToPool(c *syncConnection) {
+func (s *FSWServer) addToPool(c *SyncConnection) {
 	s.connPoolMutex.Lock()
 	s.connPool[c.ID()] = c
 	s.connPoolMutex.Unlock()
 }
 
 // remFromPool removes connection pointer from pool, so it becomes unavailable to reach
-func (s *FSWServer) remFromPool(c *syncConnection) {
+func (s *FSWServer) remFromPool(c *SyncConnection) {
 	s.connPoolMutex.Lock()
 	delete(s.connPool, c.ID())
 	s.connPoolMutex.Unlock()

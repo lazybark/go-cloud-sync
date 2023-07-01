@@ -4,7 +4,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
-func (s *FSWServer) processFullSyncRequest(c *syncConnection) {
+func (s *FSWServer) processFullSyncRequest(c *SyncConnection) {
 	uo, err := s.stor.GetUsersObjects(c.uid)
 	if err != nil {
 		s.extErc <- err

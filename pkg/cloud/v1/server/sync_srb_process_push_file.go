@@ -10,7 +10,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
-func (s *FSWServer) processPushFile(c *syncConnection, m proto.ExchangeMessage) {
+func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) {
 	a, err := m.ReadObjectData()
 	if err != nil {
 		c.SendError(proto.ErrMessageReadingFailed)
@@ -94,7 +94,7 @@ func (s *FSWServer) processPushFile(c *syncConnection, m proto.ExchangeMessage) 
 		return
 	}
 	//HERE WE SHOULD WAIT FOR FILE PARTS: intercept all connection messages until error or filebytes ended
-	for !c.tlsConnection.Closed() {
+	for !c.IsClosed() {
 		m, err := c.Await()
 		if err != nil {
 			s.extErc <- err

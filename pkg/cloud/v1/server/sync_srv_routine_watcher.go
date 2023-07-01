@@ -20,11 +20,11 @@ func (s *FSWServer) watcherRoutine() {
 				return
 			}
 			//Add connection to pool to be able to control it after
-			c := syncConnection{tlsConnection: connection}
+			c := SyncConnection{tlsConnection: connection}
 			s.addToPool(&c)
 
 			go func() {
-				for !c.tlsConnection.Closed() {
+				for !c.IsClosed() {
 					m, err := c.Await()
 					if err != nil {
 						s.extErc <- err

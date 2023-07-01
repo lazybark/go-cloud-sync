@@ -10,7 +10,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
-func (s *FSWServer) processGetFile(c *syncConnection, m proto.ExchangeMessage) {
+func (s *FSWServer) processGetFile(c *SyncConnection, m proto.ExchangeMessage) {
 	a, err := m.ReadObjectData()
 	if err != nil {
 		s.extErc <- err

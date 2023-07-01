@@ -13,7 +13,7 @@ func NewServer(stor storage.IServerStorageV1) *FSWServer {
 	s.srvConnChan = make(chan *gts.Connection)
 	s.srvErrChan = make(chan error)
 	s.srvMessChan = make(chan *gts.Message)
-	s.connPool = make(map[string]*syncConnection)
+	s.connPool = make(map[string]*SyncConnection)
 	s.connPoolMutex = sync.RWMutex{}
 
 	s.stor = stor

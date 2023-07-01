@@ -14,7 +14,7 @@ type FSWServer struct {
 
 	fp fp.FileprocessorV1
 
-	connPool map[string]*syncConnection
+	connPool map[string]*SyncConnection
 	//connPoolMutex controls connPool
 	connPoolMutex sync.RWMutex
 
