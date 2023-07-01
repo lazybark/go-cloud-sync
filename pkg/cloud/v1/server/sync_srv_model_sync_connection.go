@@ -14,6 +14,16 @@ type syncConnection struct {
 	tlsConnection   *server.Connection
 }
 
+func (sc *syncConnection) Await() (proto.ExchangeMessage, error) {
+	var m proto.ExchangeMessage
+	ans := <-sc.tlsConnection.MessageChan
+	err := json.Unmarshal(ans.Bytes(), &m)
+	if err != nil {
+		return m, fmt.Errorf("[Await] %w", err)
+	}
+	return m, nil
+}
+
 func (sc *syncConnection) ID() string {
 	return sc.tlsConnection.Id()
 }
