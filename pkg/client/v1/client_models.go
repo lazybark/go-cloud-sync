@@ -10,16 +10,16 @@ import (
 )
 
 type FSWClient struct {
-	w                  watcher.IFilesystemWatcher
+	w                  watcher.IFilesystemWatcherV1
 	extEvChannel       chan (proto.FSEvent)
 	evc                chan (proto.FSEvent)
 	extErc             chan (error)
 	erc                chan (error)
-	fp                 fp.Fileprocessor
+	fp                 fp.FileprocessorV1
 	ActionsBuffer      map[string]bool
 	ActionsBufferMutex sync.RWMutex
 
-	link fselink.ISyncLinkClient
+	link fselink.ISyncLinkClientV1
 
 	cfg ClientConfig
 }

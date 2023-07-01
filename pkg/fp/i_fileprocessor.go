@@ -7,7 +7,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-type Fileprocessor interface {
+type FileprocessorV1 interface {
 	ProcessObject(obj proto.FSObject, checkHash bool) (proto.FSObject, error)
 	ConvertPathName(obj proto.FSObject) (dir, name string, err error)
 	ProcessDirectory(path string) ([]proto.FSObject, error)
@@ -18,6 +18,6 @@ type Fileprocessor interface {
 	OpenToRead(path string) (file *os.File, err error)
 }
 
-func NewFPv1(escSymbol, root, cacheRoot string) Fileprocessor {
+func NewFPv1(escSymbol, root, cacheRoot string) FileprocessorV1 {
 	return v1.NewFP(escSymbol, root, cacheRoot)
 }

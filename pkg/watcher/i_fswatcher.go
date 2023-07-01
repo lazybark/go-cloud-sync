@@ -4,7 +4,7 @@ import "github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 
 //IFilesystemWatcher represents watcher that uses event (evc) and error (erc) channels to report all
 //changes in specified dir and its subdirs.
-type IFilesystemWatcher interface {
+type IFilesystemWatcherV1 interface {
 	//Init sets initial parameters for fs watcher
 	Init(root string, evc chan (proto.FSEvent), erc chan (error)) error
 

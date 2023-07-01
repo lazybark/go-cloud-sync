@@ -13,9 +13,9 @@ import (
 
 type FSWServer struct {
 	conf ServerConfig
-	w    watcher.IFilesystemWatcher
+	w    watcher.IFilesystemWatcherV1
 
-	fp fp.Fileprocessor
+	fp fp.FileprocessorV1
 
 	connPool map[string]*syncConnection
 	//connPoolMutex controls connPool
@@ -30,9 +30,9 @@ type FSWServer struct {
 	srvErrChan  chan error
 	srvConnChan chan *gts.Connection
 
-	stor storage.IServerStorage
+	stor storage.IServerStorageV1
 
-	htsrv fselink.ISyncLinkServer
+	htsrv fselink.ISyncLinkServerV1
 
 	isActive bool
 }
