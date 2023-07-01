@@ -7,7 +7,6 @@ import (
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
-// FSEClientLink is used by clients to connect to a server
 type SyncLinkClient interface {
 	Init(port int, addr, login, pwd string) error
 	//Break() error
@@ -17,8 +16,7 @@ type SyncLinkClient interface {
 	DeleteObject(obj proto.FSObject) (err error)
 }
 
-// FSEServerPool is used by server to keep
-type FSEServerPool interface {
+type SyncLinkServer interface {
 	Init(chan (*gts.Message), chan (*gts.Connection), chan (error)) error
 	Listen(string, string) error
 	//Stop() error

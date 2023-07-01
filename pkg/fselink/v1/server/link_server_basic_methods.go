@@ -1,4 +1,4 @@
-package fselink
+package server
 
 import (
 	"fmt"
@@ -7,25 +7,14 @@ import (
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
-func NewServer() FSEServerPool {
-	s := &SyncServer{}
-	return s
-}
-
-type SyncServer struct {
-	extMessChan chan (*gts.Message)
-	extConnChan chan (*gts.Connection)
-	extErrChan  chan (error)
-}
-
-func (s *SyncServer) Init(extMessChan chan (*gts.Message), extConnChan chan (*gts.Connection), extErrChan chan (error)) error {
+func (s *LinkServer) Init(extMessChan chan (*gts.Message), extConnChan chan (*gts.Connection), extErrChan chan (error)) error {
 	s.extMessChan = extMessChan
 	s.extConnChan = extConnChan
 	s.extErrChan = extErrChan
 	return nil
 }
 
-func (s *SyncServer) Listen(addr, port string) error {
+func (s *LinkServer) Listen(addr, port string) error {
 	done := make(chan bool)
 
 	conf := &gts.Config{KeepOldConnections: 1, NotifyAboutNewConnections: true}
@@ -48,10 +37,10 @@ func (s *SyncServer) Listen(addr, port string) error {
 
 	return nil
 }
-func (s *SyncServer) Stop() error {
+func (s *LinkServer) Stop() error {
 	return nil
 
 }
-func (s *SyncServer) NotifyClients(e proto.FSEvent) error {
+func (s *LinkServer) NotifyClients(e proto.FSEvent) error {
 	return nil
 }

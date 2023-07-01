@@ -32,7 +32,7 @@ type FSWServer struct {
 
 	stor storage.IServerStorage
 
-	htsrv fselink.FSEServerPool
+	htsrv fselink.SyncLinkServer
 
 	isActive bool
 }

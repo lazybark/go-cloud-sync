@@ -3,7 +3,7 @@ package v1
 import (
 	"sync"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 	gts "github.com/lazybark/go-tls-server/v3/server"
@@ -19,7 +19,7 @@ func NewServer(stor storage.IServerStorage) *FSWServer {
 
 	s.w = watcher.NewWatcher()
 	s.stor = stor
-	s.htsrv = fselink.NewServer()
+	s.htsrv = server.NewServer()
 
 	return s
 }
