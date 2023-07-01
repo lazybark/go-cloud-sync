@@ -19,16 +19,3 @@ func AwaitAnswer(sc SyncReciever, m *proto.ExchangeMessage) error {
 
 	return nil
 }
-
-func UnpackMessage(m proto.ExchangeMessage, expectedType proto.ExchangeMessageType, payload any) error {
-	if m.Type != expectedType {
-		return fmt.Errorf("[UnpackMessage] unexpected message type '%s'", m.Type)
-	}
-
-	err := json.Unmarshal(m.Payload, payload)
-	if err != nil {
-		return fmt.Errorf("[AwaitAnswer] %w", err)
-	}
-
-	return nil
-}

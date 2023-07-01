@@ -1,5 +1,29 @@
 package v1
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type MessageError struct {
+	Error     string
+	ErrorCode int
+}
+
+func (em ExchangeMessage) ReadError() (MessageError, error) {
+	var m MessageError
+	if em.Type != MessageTypeError {
+		return m, fmt.Errorf("[ExchangeMessage][ReadError] unexpected message type '%s'", em.Type)
+	}
+
+	err := json.Unmarshal(em.Payload, &m)
+	if err != nil {
+		return m, fmt.Errorf("[ExchangeMessage][ReadError] %w", err)
+	}
+
+	return m, nil
+}
+
 type ErrorCode int
 
 var errCodes = [...]string{

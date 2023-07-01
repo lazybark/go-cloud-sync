@@ -34,21 +34,19 @@ func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
 		return
 	}
 	if maa.Type == proto.MessageTypeError {
-		var se proto.MessageError
-		err = UnpackMessage(maa, proto.MessageTypeError, &se)
+		a, err := maa.ReadError()
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
-		return l, fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+		return l, fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 	} else if maa.Type == proto.MessageTypeFullSyncReply {
-		var sm proto.MessageFullSyncReply
-		err = UnpackMessage(maa, proto.MessageTypeFullSyncReply, &sm)
+		a, err := maa.ReadFullSyncReply()
 		if err != nil {
 			return l, fmt.Errorf("[GetObjList] %w", err)
 		}
-		l = sm.Objects
+		l = a.Objects
 
-		return
+		return l, err
 	}
 
 	return l, fmt.Errorf("[GetObjList] unexpected answer type '%s'", maa.Type)
@@ -79,12 +77,11 @@ func (sc *SyncClient) DeleteObject(obj fse.FSObject) (err error) {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
 	if maa.Type == proto.MessageTypeError {
-		var se proto.MessageError
-		err := UnpackMessage(maa, proto.MessageTypeError, &se)
+		a, err := maa.ReadError()
 		if err != nil {
 			return fmt.Errorf("[DeleteObject]%w", err)
 		}
-		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+		return fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 	} else if maa.Type == proto.MessageTypeClose {
 		//We try to close only after server says that we can do it (no more answers expected)
 		return
@@ -118,12 +115,11 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 		return fmt.Errorf("[PushObject]%w", err)
 	}
 	if maa.Type == proto.MessageTypeError {
-		var se proto.MessageError
-		err := UnpackMessage(maa, proto.MessageTypeError, &se)
+		a, err := maa.ReadError()
 		if err != nil {
 			return fmt.Errorf("[PushObject]%w", err)
 		}
-		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+		return fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 	} else if maa.Type == proto.MessageTypePeerReady {
 		// TLS record size can be up to 16KB but some extra bytes may apply
 		// https://hpbn.co/transport-layer-security-tls/#optimize-tls-record-size
@@ -189,19 +185,17 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 			return fmt.Errorf("[DownloadObject]%w", err)
 		}
 		if maa.Type == proto.MessageTypeError {
-			var se proto.MessageError
-			err := UnpackMessage(maa, proto.MessageTypeError, &se)
+			a, err := maa.ReadError()
 			if err != nil {
 				return fmt.Errorf("[DownloadObject]%w", err)
 			}
-			return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+			return fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 		} else if maa.Type == proto.MessageTypeFileParts {
-			var m proto.MessageFilePart
-			err := UnpackMessage(maa, proto.MessageTypeFileParts, &m)
+			a, err := maa.ReadFilePart()
 			if err != nil {
 				return fmt.Errorf("[DownloadObject]%w", err)
 			}
-			_, err = destFile.Write(m.Payload)
+			_, err = destFile.Write(a.Payload)
 			if err != nil {
 				return fmt.Errorf("[DownloadObject]%w", err)
 			}

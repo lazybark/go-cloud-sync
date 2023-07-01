@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 )
@@ -87,8 +86,7 @@ func (s *FSWServer) watcherRoutine() {
 						s.processFullSyncRequest(&c)
 
 					} else if m.Type == proto.MessageTypeGetFile {
-						var mu proto.MessageObject
-						err = fselink.UnpackMessage(m, proto.MessageTypeGetFile, &mu)
+						a, err := m.ReadObjectData()
 						if err != nil {
 							s.extErc <- err
 							continue
@@ -96,15 +94,15 @@ func (s *FSWServer) watcherRoutine() {
 
 						//Do not SEND dirs
 						//Client should create dir after full sync request
-						if mu.Object.IsDir {
+						if a.Object.IsDir {
 							c.SendError(proto.ErrWrongObjectType)
 							continue
 						}
 
-						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
+						a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 
-						fileName := s.fp.GetPathUnescaped(mu.Object)
-						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
+						fileName := s.fp.GetPathUnescaped(a.Object)
+						dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
 						if err != nil {
 							s.extErc <- err
 							continue
@@ -160,20 +158,19 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypePushFile {
-						var mu proto.MessageObject
-						err = fselink.UnpackMessage(m, proto.MessageTypePushFile, &mu)
+						a, err := m.ReadObjectData()
 						if err != nil {
 							c.SendError(proto.ErrMessageReadingFailed)
 							s.extErc <- err
 							continue
 						}
 
-						mu.Object.Path = strings.ReplaceAll(mu.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
-						pathUnescaped := filepath.Join(s.fp.UnescapePath(mu.Object))
-						pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(mu.Object))
+						a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
+						pathUnescaped := filepath.Join(s.fp.UnescapePath(a.Object))
+						pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(a.Object))
 
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
-						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
+						dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
 						if err != nil && err != storage.ErrNotExists {
 							c.SendError(proto.ErrInternalServerError)
 							s.extErc <- err
@@ -181,14 +178,14 @@ func (s *FSWServer) watcherRoutine() {
 						}
 						//If object does not exist yet
 						if dbObj.ID != 0 {
-							err = s.stor.LockObject(mu.Object.Path, mu.Object.Name)
+							err = s.stor.LockObject(a.Object.Path, a.Object.Name)
 							if err != nil {
 								s.extErc <- err
 								c.SendError(proto.ErrInternalServerError)
 								continue
 							}
 							//Do not sync dirs
-							if mu.Object.IsDir {
+							if a.Object.IsDir {
 								err = c.SendMessage(nil, proto.MessageTypeClose)
 								if err != nil {
 									s.extErc <- err
@@ -202,7 +199,7 @@ func (s *FSWServer) watcherRoutine() {
 								continue
 							}
 						}
-						if mu.Object.IsDir {
+						if a.Object.IsDir {
 							fmt.Println("CREATING DIR")
 							//CREATE DIR HERE
 							if err := os.MkdirAll(pathFullUnescaped, os.ModePerm); err != nil {
@@ -211,14 +208,14 @@ func (s *FSWServer) watcherRoutine() {
 								return
 							}
 							err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
-								Name:        mu.Object.Name,
-								Path:        mu.Object.Path,
+								Name:        a.Object.Name,
+								Path:        a.Object.Path,
 								Owner:       c.uid,
-								Hash:        mu.Object.Hash,
-								IsDir:       mu.Object.IsDir,
-								Ext:         mu.Object.Ext,
-								Size:        mu.Object.Size,
-								FSUpdatedAt: mu.Object.UpdatedAt,
+								Hash:        a.Object.Hash,
+								IsDir:       a.Object.IsDir,
+								Ext:         a.Object.Ext,
+								Size:        a.Object.Size,
+								FSUpdatedAt: a.Object.UpdatedAt,
 							})
 							if err != nil {
 								s.extErc <- err
@@ -259,22 +256,20 @@ func (s *FSWServer) watcherRoutine() {
 								continue
 							}
 							if m.Type == proto.MessageTypeError {
-								var se proto.MessageError
-								err := fselink.UnpackMessage(m, proto.MessageTypeError, &se)
+								a, err := m.ReadError()
 								if err != nil {
 									s.extErc <- err
 									return
 								}
-								s.extErc <- err
+								s.extErc <- fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 								return
 							} else if m.Type == proto.MessageTypeFileParts {
-								var mp proto.MessageFilePart
-								err := fselink.UnpackMessage(m, proto.MessageTypeFileParts, &mp)
+								a, err := m.ReadFilePart()
 								if err != nil {
 									s.extErc <- err
 									return
 								}
-								_, err = destFile.Write(mp.Payload)
+								_, err = destFile.Write(a.Payload)
 								if err != nil {
 									s.extErc <- err
 									return
@@ -307,7 +302,7 @@ func (s *FSWServer) watcherRoutine() {
 							}
 							return
 						}
-						err = os.Chtimes(pathFullUnescaped, mu.Object.UpdatedAt, mu.Object.UpdatedAt)
+						err = os.Chtimes(pathFullUnescaped, a.Object.UpdatedAt, a.Object.UpdatedAt)
 						if err != nil {
 							s.extErc <- err
 							c.SendError(proto.ErrInternalServerError)
@@ -315,14 +310,14 @@ func (s *FSWServer) watcherRoutine() {
 						}
 
 						err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
-							Name:        mu.Object.Name,
-							Path:        mu.Object.Path,
+							Name:        a.Object.Name,
+							Path:        a.Object.Path,
 							Owner:       c.uid,
-							Hash:        mu.Object.Hash,
-							IsDir:       mu.Object.IsDir,
-							Ext:         mu.Object.Ext,
-							Size:        mu.Object.Size,
-							FSUpdatedAt: mu.Object.UpdatedAt,
+							Hash:        a.Object.Hash,
+							IsDir:       a.Object.IsDir,
+							Ext:         a.Object.Ext,
+							Size:        a.Object.Size,
+							FSUpdatedAt: a.Object.UpdatedAt,
 						})
 						if err != nil {
 							s.extErc <- err
@@ -343,7 +338,7 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 						if dbObj.ID != 0 {
-							err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
+							err = s.stor.UnLockObject(a.Object.Path, a.Object.Name)
 							if err != nil {
 								s.extErc <- err
 								c.SendError(proto.ErrInternalServerError)

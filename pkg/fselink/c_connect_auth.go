@@ -24,22 +24,20 @@ func (sc *SyncClient) ConnectAndAuth() error {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}
 	if maa.Type == proto.MessageTypeError {
-		var se proto.MessageError
-		err := UnpackMessage(maa, proto.MessageTypeError, &se)
+		a, err := maa.ReadError()
 		if err != nil {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
-		return fmt.Errorf("sync error #%d: %s", se.ErrorCode, se.Error)
+		return fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
 	} else if maa.Type == proto.MessageTypeAuthAns {
-		var sm proto.MessageAuthAnswer
-		err := UnpackMessage(maa, proto.MessageTypeAuthAns, &sm)
+		a, err := maa.ReadAuthAnswer()
 		if err != nil {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
-		if !sm.Success {
+		if !a.Success {
 			return fmt.Errorf("[ConnectAndAuth]%w", err)
 		}
-		sc.akey = sm.AuthKey
+		sc.akey = a.AuthKey
 		return nil
 	}
 
