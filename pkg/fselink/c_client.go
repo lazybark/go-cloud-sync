@@ -2,6 +2,7 @@ package fselink
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -27,8 +28,7 @@ func (sc *SyncClient) GetObjList() (l []fse.FSObject, err error) {
 		err = fmt.Errorf("[GetObjList] %w", err)
 		return
 	}
-	var maa proto.ExchangeMessage
-	err = AwaitAnswer(sc, &maa)
+	maa, err := sc.Await()
 	if err != nil {
 		err = fmt.Errorf("[GetObjList] %w", err)
 		return
@@ -71,8 +71,7 @@ func (sc *SyncClient) DeleteObject(obj fse.FSObject) (err error) {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
 
-	var maa proto.ExchangeMessage
-	err = AwaitAnswer(link, &maa)
+	maa, err := sc.Await()
 	if err != nil {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
@@ -109,8 +108,7 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 		return fmt.Errorf("[PushObject]%w", err)
 	}
 
-	var maa proto.ExchangeMessage
-	err = AwaitAnswer(link, &maa)
+	maa, err := link.Await()
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)
 	}
@@ -180,7 +178,7 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 
 	var maa proto.ExchangeMessage
 	for {
-		err = AwaitAnswer(link, &maa)
+		maa, err = link.Await()
 		if err != nil {
 			return fmt.Errorf("[DownloadObject]%w", err)
 		}
@@ -227,12 +225,16 @@ func (sc *SyncClient) Init(port int, addr, login, pwd string) error {
 	return nil
 }
 
-func (sc *SyncClient) AwaitAnswer() (*client.Message, error) {
-	ans := <-sc.c.MessageChan
-	//pissble error will be added here later to prevent endless loops
-	return ans, nil
-}
-
 func (sc *SyncClient) compileMessageBody(t proto.ExchangeMessageType) proto.ExchangeMessage {
 	return proto.ExchangeMessage{Type: t, AuthKey: sc.akey, Payload: []byte{}}
+}
+
+func (sc *SyncClient) Await() (proto.ExchangeMessage, error) {
+	var m proto.ExchangeMessage
+	ans := <-sc.c.MessageChan
+	err := json.Unmarshal(ans.Bytes(), &m)
+	if err != nil {
+		return m, fmt.Errorf("[AwaitAnswer] %w", err)
+	}
+	return m, nil
 }

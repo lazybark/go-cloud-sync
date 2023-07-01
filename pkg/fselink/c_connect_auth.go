@@ -18,8 +18,7 @@ func (sc *SyncClient) ConnectAndAuth() error {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}
 
-	var maa proto.ExchangeMessage
-	err = AwaitAnswer(sc, &maa)
+	maa, err := sc.Await()
 	if err != nil {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
 	}
