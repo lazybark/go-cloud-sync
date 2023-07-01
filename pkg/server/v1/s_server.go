@@ -92,17 +92,17 @@ func (s *FSWServer) watcherRoutine() {
 					//Security checks
 					if m.Type != proto.MessageTypeAuthReq {
 						if m.AuthKey == "" {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
+							c.SendError(proto.ErrForbidden)
 							continue
 						}
 						ok, err := s.checkToken(c.clientTokenHash, m.AuthKey)
 						if err != nil {
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							s.extErc <- err
 							continue
 						}
 						if !ok {
-							s.sendError(mess.Conn(), proto.ErrForbidden)
+							c.SendError(proto.ErrForbidden)
 							continue
 						}
 					}
@@ -126,7 +126,7 @@ func (s *FSWServer) watcherRoutine() {
 						//Do not SEND dirs
 						//Client should create dir after full sync request
 						if mu.Object.IsDir {
-							s.sendError(mess.Conn(), proto.ErrWrongObjectType)
+							c.SendError(proto.ErrWrongObjectType)
 							continue
 						}
 
@@ -140,13 +140,13 @@ func (s *FSWServer) watcherRoutine() {
 						}
 						//Do not SEND dirs (2) - if client's a smartass and still wants it somehow
 						if dbObj.IsDir {
-							s.sendError(mess.Conn(), proto.ErrWrongObjectType)
+							c.SendError(proto.ErrWrongObjectType)
 							continue
 						}
 
 						fileData, err := os.Open(fileName)
 						if err != nil {
-							s.sendError(mess.Conn(), proto.ErrFileReadingFailed)
+							c.SendError(proto.ErrFileReadingFailed)
 							continue
 						}
 
@@ -163,11 +163,11 @@ func (s *FSWServer) watcherRoutine() {
 								break
 							}
 							if err != nil {
-								s.sendError(mess.Conn(), proto.ErrFileReadingFailed)
+								c.SendError(proto.ErrFileReadingFailed)
 								break
 							}
 
-							err = fselink.SendSyncMessage(mess.Conn(), proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
+							err = c.SendMessage(proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
 							if err != nil {
 								s.extErc <- err
 								break
@@ -175,7 +175,7 @@ func (s *FSWServer) watcherRoutine() {
 						}
 						fileData.Close()
 
-						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeFileEnd)
+						err = c.SendMessage(nil, proto.MessageTypeFileEnd)
 						if err != nil {
 							s.extErc <- err
 							continue
@@ -192,7 +192,7 @@ func (s *FSWServer) watcherRoutine() {
 						var mu proto.MessagePushFile
 						err = fselink.UnpackMessage(m, proto.MessageTypePushFile, &mu)
 						if err != nil {
-							s.sendError(mess.Conn(), proto.ErrMessageReadingFailed)
+							c.SendError(proto.ErrMessageReadingFailed)
 							s.extErc <- err
 							continue
 						}
@@ -204,7 +204,7 @@ func (s *FSWServer) watcherRoutine() {
 						//fileName := s.fp.GetPathUnescaped(mu.Object)
 						dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
 						if err != nil && err != storage.ErrNotExists {
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							s.extErc <- err
 							continue
 						}
@@ -213,12 +213,12 @@ func (s *FSWServer) watcherRoutine() {
 							err = s.stor.LockObject(mu.Object.Path, mu.Object.Name)
 							if err != nil {
 								s.extErc <- err
-								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								c.SendError(proto.ErrInternalServerError)
 								continue
 							}
 							//Do not sync dirs
 							if mu.Object.IsDir {
-								err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+								err = c.SendMessage(nil, proto.MessageTypeClose)
 								if err != nil {
 									s.extErc <- err
 									continue
@@ -236,7 +236,7 @@ func (s *FSWServer) watcherRoutine() {
 							//CREATE DIR HERE
 							if err := os.MkdirAll(pathFullUnescaped, os.ModePerm); err != nil {
 								s.extErc <- err
-								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								c.SendError(proto.ErrInternalServerError)
 								return
 							}
 							err = s.stor.AddOrUpdateObject(storage.FSObjectStored{
@@ -251,11 +251,11 @@ func (s *FSWServer) watcherRoutine() {
 							})
 							if err != nil {
 								s.extErc <- err
-								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								c.SendError(proto.ErrInternalServerError)
 								continue
 							}
 
-							err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+							err = c.SendMessage(nil, proto.MessageTypeClose)
 							if err != nil {
 								s.extErc <- err
 								continue
@@ -268,7 +268,7 @@ func (s *FSWServer) watcherRoutine() {
 							continue
 						}
 
-						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypePeerReady)
+						err = c.SendMessage(nil, proto.MessageTypePeerReady)
 						if err != nil {
 							s.extErc <- err
 							continue
@@ -277,7 +277,7 @@ func (s *FSWServer) watcherRoutine() {
 						destFile, err := s.fp.CreateFileInCache()
 						if err != nil {
 							s.extErc <- err
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							return
 						}
 						//HERE WE SHOULD WAIT FOR FILE PARTS
@@ -339,7 +339,7 @@ func (s *FSWServer) watcherRoutine() {
 						err = os.Chtimes(pathFullUnescaped, mu.Object.UpdatedAt, mu.Object.UpdatedAt)
 						if err != nil {
 							s.extErc <- err
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							continue
 						}
 
@@ -355,14 +355,14 @@ func (s *FSWServer) watcherRoutine() {
 						})
 						if err != nil {
 							s.extErc <- err
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							continue
 						}
 
-						err = fselink.SendSyncMessage(mess.Conn(), nil, proto.MessageTypeClose)
+						err = c.SendMessage(nil, proto.MessageTypeClose)
 						if err != nil {
 							s.extErc <- err
-							s.sendError(mess.Conn(), proto.ErrInternalServerError)
+							c.SendError(proto.ErrInternalServerError)
 							continue
 						}
 
@@ -375,7 +375,7 @@ func (s *FSWServer) watcherRoutine() {
 							err = s.stor.UnLockObject(mu.Object.Path, mu.Object.Name)
 							if err != nil {
 								s.extErc <- err
-								s.sendError(mess.Conn(), proto.ErrInternalServerError)
+								c.SendError(proto.ErrInternalServerError)
 								continue
 							}
 						}
@@ -385,7 +385,7 @@ func (s *FSWServer) watcherRoutine() {
 					} else if m.Type == proto.MessageTypeDeleteObject {
 						s.processDelete(&c, m)
 					} else {
-						s.sendError(mess.Conn(), proto.ErrUnexpectedMessageType)
+						c.SendError(proto.ErrUnexpectedMessageType)
 						continue
 					}
 				}
@@ -401,11 +401,4 @@ func (s *FSWServer) createSession(log, pwd string) (user, sessionKey string) {
 
 func (s *FSWServer) checkToken(hash, token string) (ok bool, err error) {
 	return comparePasswords(hash, token)
-}
-
-func (s *FSWServer) sendError(sm fselink.SyncMessenger, e proto.ErrorCode) {
-	err := fselink.SendErrorMessage(sm, e)
-	if err != nil {
-		s.extErc <- err
-	}
 }

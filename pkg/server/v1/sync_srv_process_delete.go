@@ -13,7 +13,7 @@ func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
 	var mu proto.MessageDeleteObject
 	err := fselink.UnpackMessage(m, proto.MessageTypeDeleteObject, &mu)
 	if err != nil {
-		s.sendError(c.tlsConnection, proto.ErrMessageReadingFailed)
+		c.SendError(proto.ErrMessageReadingFailed)
 		s.extErc <- err
 		return
 	}
@@ -23,7 +23,7 @@ func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
 	//fileName := s.fp.GetPathUnescaped(mu.Object)
 	dbObj, err := s.stor.GetObject(mu.Object.Path, mu.Object.Name)
 	if err != nil && err != storage.ErrNotExists {
-		s.sendError(c.tlsConnection, proto.ErrInternalServerError)
+		c.SendError(proto.ErrInternalServerError)
 		s.extErc <- err
 		return
 	}
@@ -31,7 +31,7 @@ func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
 	if dbObj.ID != 0 {
 		err = s.stor.RemoveObject(dbObj, true)
 		if err != nil && err != storage.ErrNotExists {
-			s.sendError(c.tlsConnection, proto.ErrInternalServerError)
+			c.SendError(proto.ErrInternalServerError)
 			s.extErc <- err
 			return
 		}
@@ -39,12 +39,12 @@ func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
 
 	err = os.RemoveAll(s.fp.GetPathUnescaped(mu.Object))
 	if err != nil && err != storage.ErrNotExists {
-		s.sendError(c.tlsConnection, proto.ErrInternalServerError)
+		c.SendError(proto.ErrInternalServerError)
 		s.extErc <- err
 		return
 	}
 
-	err = fselink.SendSyncMessage(c.tlsConnection, nil, proto.MessageTypeClose)
+	err = c.SendMessage(nil, proto.MessageTypeClose)
 	if err != nil {
 		s.extErc <- err
 		return
