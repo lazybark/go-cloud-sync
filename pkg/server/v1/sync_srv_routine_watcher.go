@@ -13,24 +13,6 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 )
 
-func (s *FSWServer) ExtractOwnerFromPath(p string, o string) string {
-	dirs := strings.Split(p, s.conf.escSymbol)
-	if len(dirs) < 2 {
-		return p
-	} else {
-		return strings.ReplaceAll(p, "?ROOT_DIR?,"+o, "?ROOT_DIR?")
-	}
-}
-
-func (s *FSWServer) GetOwnerFromPath(p string) string {
-	dirs := strings.Split(p, s.conf.escSymbol)
-	if len(dirs) < 2 {
-		return ""
-	} else {
-		return dirs[1]
-	}
-}
-
 func (s *FSWServer) watcherRoutine() {
 	fmt.Println("Waiting for connections")
 	var m proto.ExchangeMessage
@@ -359,12 +341,4 @@ func (s *FSWServer) watcherRoutine() {
 		}
 	}
 
-}
-
-func (s *FSWServer) createSession(log, pwd string) (user, sessionKey string) {
-	return "1", "AUTH_KEY"
-}
-
-func (s *FSWServer) checkToken(hash, token string) (ok bool, err error) {
-	return comparePasswords(hash, token)
 }

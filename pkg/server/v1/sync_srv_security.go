@@ -35,3 +35,11 @@ func comparePasswords(hashedPwd string, plainPwd string) (bool, error) {
 
 	return true, nil
 }
+
+func (s *FSWServer) createSession(log, pwd string) (user, sessionKey string) {
+	return "1", "AUTH_KEY"
+}
+
+func (s *FSWServer) checkToken(hash, token string) (ok bool, err error) {
+	return comparePasswords(hash, token)
+}

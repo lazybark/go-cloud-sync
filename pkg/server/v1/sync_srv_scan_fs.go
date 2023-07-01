@@ -21,6 +21,7 @@ func (s *FSWServer) rescanOnce() {
 	}
 	fmt.Println("Database refilled")
 }
+
 func (s *FSWServer) readLocalObjects() (objs []storage.FSObjectStored, err error) {
 	local, err := s.fp.ProcessDirectory(s.conf.root)
 	if err != nil {

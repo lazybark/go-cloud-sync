@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
@@ -63,4 +64,22 @@ func (s *FSWServer) Stop() error {
 	fmt.Println("Server stopped")
 
 	return nil
+}
+
+func (s *FSWServer) ExtractOwnerFromPath(p string, o string) string {
+	dirs := strings.Split(p, s.conf.escSymbol)
+	if len(dirs) < 2 {
+		return p
+	} else {
+		return strings.ReplaceAll(p, "?ROOT_DIR?,"+o, "?ROOT_DIR?")
+	}
+}
+
+func (s *FSWServer) GetOwnerFromPath(p string) string {
+	dirs := strings.Split(p, s.conf.escSymbol)
+	if len(dirs) < 2 {
+		return ""
+	} else {
+		return dirs[1]
+	}
 }
