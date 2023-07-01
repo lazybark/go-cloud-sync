@@ -16,7 +16,7 @@ func (fp *FileProcessor) ProcessObject(obj proto.FSObject, checkHash bool) (prot
 	var err error
 	oInfo, err := os.Stat(obj.Path)
 	if err != nil {
-		return obj, fmt.Errorf("[CreateObject] object reading failed '%s': %w", obj.Path, err)
+		return obj, fmt.Errorf("[ProcessObject][Stat] '%s': %w", obj.Path, err)
 	}
 	obj.IsDir = oInfo.IsDir()
 
