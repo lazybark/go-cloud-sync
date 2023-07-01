@@ -9,7 +9,6 @@ import (
 
 type ISyncLinkClientV1 interface {
 	Init(port int, addr, login, pwd string) error
-	//Break() error
 	GetObjList() ([]proto.FSObject, error)
 	DownloadObject(obj proto.FSObject, writeTo *os.File) error
 	PushObject(obj proto.FSObject, readFrom *os.File) error
@@ -19,6 +18,4 @@ type ISyncLinkClientV1 interface {
 type ISyncLinkServerV1 interface {
 	Init(chan (*gts.Message), chan (*gts.Connection), chan (error)) error
 	Listen(string, string) error
-	//Stop() error
-	//NotifyClients(e fse.FSEvent) error
 }
