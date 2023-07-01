@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (s *FSWServer) watcherRoutine() {

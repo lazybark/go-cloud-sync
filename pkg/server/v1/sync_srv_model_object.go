@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 type Object struct {

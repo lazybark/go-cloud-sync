@@ -2,7 +2,7 @@ package client
 
 import (
 	v1 "github.com/lazybark/go-cloud-sync/pkg/client/v1"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 type IFSWClient interface {

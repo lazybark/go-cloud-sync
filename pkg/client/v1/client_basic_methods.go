@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (c *FSWClient) Init(evc chan (proto.FSEvent), erc chan (error), login, pwd string) error {

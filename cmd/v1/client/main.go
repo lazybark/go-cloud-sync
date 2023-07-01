@@ -7,7 +7,7 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/client"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 //Basic client algorithm:

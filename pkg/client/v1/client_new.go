@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/client"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/client"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
 

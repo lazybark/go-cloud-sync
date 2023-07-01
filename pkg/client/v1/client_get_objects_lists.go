@@ -3,7 +3,7 @@ package v1
 import (
 	"fmt"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (c *FSWClient) GetServerObjList() (l []proto.FSObject, err error) {

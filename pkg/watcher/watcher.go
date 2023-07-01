@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 // FSWatcher is the object with methods to watch filesystem events (changes to FS struct) in

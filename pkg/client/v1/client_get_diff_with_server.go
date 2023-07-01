@@ -3,7 +3,7 @@ package v1
 import (
 	"path/filepath"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (c *FSWClient) GetDiffListWithServer(locObjs []proto.FSObject, srvObjs []proto.FSObject) (dld []proto.FSObject, crtd []proto.FSObject, updtd []proto.FSObject, err error) {

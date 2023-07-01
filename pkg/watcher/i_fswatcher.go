@@ -1,6 +1,6 @@
 package watcher
 
-import "github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+import "github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 
 //IFilesystemWatcher represents watcher that uses event (evc) and error (erc) channels to report all
 //changes in specified dir and its subdirs.

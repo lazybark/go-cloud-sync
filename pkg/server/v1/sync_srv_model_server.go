@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
+	fselink "github.com/lazybark/go-cloud-sync/pkg/synclink"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 

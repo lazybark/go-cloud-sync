@@ -3,8 +3,8 @@ package v1
 import (
 	"sync"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/server"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 

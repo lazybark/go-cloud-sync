@@ -4,7 +4,7 @@ import (
 	"os"
 
 	v1 "github.com/lazybark/go-cloud-sync/pkg/fp/v1"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 type FileprocessorV1 interface {

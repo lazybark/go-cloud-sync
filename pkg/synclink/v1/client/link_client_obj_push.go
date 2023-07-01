@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (sc *LinkClient) PushObject(obj proto.FSObject, fileData *os.File) (err error) {

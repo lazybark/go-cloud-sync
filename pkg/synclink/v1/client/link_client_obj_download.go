@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (sc *LinkClient) DownloadObject(obj proto.FSObject, destFile *os.File) (err error) {

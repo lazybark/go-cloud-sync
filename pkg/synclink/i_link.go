@@ -3,7 +3,7 @@ package fselink
 import (
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
