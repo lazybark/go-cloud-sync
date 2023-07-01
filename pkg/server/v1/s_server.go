@@ -12,7 +12,6 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *FSWServer) ExtractOwnerFromPath(p string, o string) string {
@@ -31,36 +30,6 @@ func (s *FSWServer) GetOwnerFromPath(p string) string {
 	} else {
 		return dirs[1]
 	}
-}
-
-func hashAndSaltPassword(pwd []byte) (string, error) {
-
-	// Use GenerateFromPassword to hash & salt pwd.
-	// MinCost is just an integer constant provided by the bcrypt
-	// package along with DefaultCost & MaxCost.
-	// The cost can be any value you want provided it isn't lower
-	// than the MinCost (4)
-	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
-	if err != nil {
-		return "", fmt.Errorf("[hashAndSaltPassword]%w", err)
-	}
-	// GenerateFromPassword returns a byte slice so we need to
-	// convert the bytes to a string and return it
-	return string(hash), nil
-}
-
-func comparePasswords(hashedPwd string, plainPwd string) (bool, error) {
-	// Since we'll be getting the hashed password from the DB it
-	// will be a string so we'll need to convert it to a byte slice
-	fmt.Println(hashedPwd, plainPwd)
-	byteHash := []byte(hashedPwd)
-	plainPwdBytes := []byte(plainPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPwdBytes)
-	if err != nil {
-		return false, fmt.Errorf("[comparePasswords]%w", err)
-	}
-
-	return true, nil
 }
 
 func (s *FSWServer) watcherRoutine() {
@@ -83,13 +52,14 @@ func (s *FSWServer) watcherRoutine() {
 
 			go func() {
 				for mess := range connection.MessageChan {
+					//GET MESSAGE HEAD
 					err := json.Unmarshal(mess.Bytes(), &m)
 					if err != nil {
 						s.extErc <- err
 						continue
 					}
 
-					//Security checks
+					//SECURITY CHECKS
 					if m.Type != proto.MessageTypeAuthReq {
 						if m.AuthKey == "" {
 							c.SendError(proto.ErrForbidden)
@@ -107,6 +77,7 @@ func (s *FSWServer) watcherRoutine() {
 						}
 					}
 
+					//MESSAGE PROCESSING
 					if m.Type == proto.MessageTypeAuthReq {
 
 						s.processAuth("", "", &c)
