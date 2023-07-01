@@ -77,5 +77,4 @@ func (s *FSWServer) processGetFile(c *syncConnection, m proto.ExchangeMessage) {
 
 	fmt.Println("SENT FILE")
 	c.Close()
-	return
 }
