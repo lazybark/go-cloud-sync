@@ -1,10 +1,8 @@
 package server
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -68,76 +66,8 @@ func (s *FSWServer) watcherRoutine() {
 						s.processFullSyncRequest(&c)
 
 					} else if m.Type == proto.MessageTypeGetFile {
-						a, err := m.ReadObjectData()
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
 
-						//Do not SEND dirs
-						//Client should create dir after full sync request
-						if a.Object.IsDir {
-							c.SendError(proto.ErrWrongObjectType)
-							continue
-						}
-
-						a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
-
-						fileName := s.fp.GetPathUnescaped(a.Object)
-						dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
-						//Do not SEND dirs (2) - if client's a smartass and still wants it somehow
-						if dbObj.IsDir {
-							c.SendError(proto.ErrWrongObjectType)
-							continue
-						}
-
-						fileData, err := os.Open(fileName)
-						if err != nil {
-							c.SendError(proto.ErrFileReadingFailed)
-							continue
-						}
-
-						// TLS record size can be up to 16KB but some extra bytes may apply
-						// https://hpbn.co/transport-layer-security-tls/#optimize-tls-record-size
-						buf := make([]byte, 15360)
-						n := 0
-
-						r := bufio.NewReader(fileData)
-
-						for {
-							n, err = r.Read(buf)
-							if err == io.EOF {
-								break
-							}
-							if err != nil {
-								c.SendError(proto.ErrFileReadingFailed)
-								break
-							}
-
-							err = c.SendMessage(proto.MessageFilePart{Payload: buf[:n]}, proto.MessageTypeFileParts)
-							if err != nil {
-								s.extErc <- err
-								break
-							}
-						}
-						fileData.Close()
-
-						err = c.SendMessage(nil, proto.MessageTypeFileEnd)
-						if err != nil {
-							s.extErc <- err
-							continue
-						}
-
-						fmt.Println("SENT FILE")
-						err = mess.Conn().Close()
-						if err != nil {
-							s.extErc <- err
-						}
-						continue
+						s.processGetFile(&c, m)
 
 					} else if m.Type == proto.MessageTypePushFile {
 						a, err := m.ReadObjectData()
@@ -331,7 +261,9 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypeDeleteObject {
+
 						s.processDelete(&c, m)
+
 					} else {
 						c.SendError(proto.ErrUnexpectedMessageType)
 						continue
