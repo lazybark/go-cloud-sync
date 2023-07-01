@@ -12,11 +12,13 @@ func (c *FSWClient) Init(evc chan (proto.FSEvent), erc chan (error), login, pwd 
 	c.extErc = erc
 	c.ActionsBuffer = make(map[string]bool)
 
+	fmt.Println("Starting filesystem watcher")
 	err := c.w.Init(c.cfg.Root, c.evc, c.erc)
 	if err != nil {
 		return fmt.Errorf("[SYNC][INIT] can not start watcher: %w", err)
 	}
 
+	fmt.Println("Connecting to server")
 	err = c.link.Init(5555, "localhost", login, pwd)
 	if err != nil {
 		return fmt.Errorf("[SYNC][INIT] can not connect to server: %w", err)
