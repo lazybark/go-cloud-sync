@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
 type Object struct {
@@ -28,8 +28,8 @@ func (o Object) JSON() ([]byte, error) {
 	return ebg, nil
 }
 
-func (o Object) ToProtoObject() fse.FSObject {
-	return fse.FSObject{
+func (o Object) ToProtoObject() proto.FSObject {
+	return proto.FSObject{
 		Path:      o.Path.PathEscaped,
 		Name:      o.Path.Name,
 		IsDir:     o.IsDir,

@@ -3,11 +3,10 @@ package client
 import (
 	"fmt"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (sc *LinkClient) GetObjList() (l []fse.FSObject, err error) {
+func (sc *LinkClient) GetObjList() (l []proto.FSObject, err error) {
 	err = sc.SendSyncMessage(nil, proto.MessageTypeFullSyncRequest)
 	if err != nil {
 		err = fmt.Errorf("[GetObjList] %w", err)

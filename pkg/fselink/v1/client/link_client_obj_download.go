@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (sc *LinkClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err error) {
+func (sc *LinkClient) DownloadObject(obj proto.FSObject, destFile *os.File) (err error) {
 	link, err := NewClient()
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)

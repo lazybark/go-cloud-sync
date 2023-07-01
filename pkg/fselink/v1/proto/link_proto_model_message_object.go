@@ -3,12 +3,10 @@ package proto
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 )
 
 type MessageObject struct {
-	Object fse.FSObject
+	Object FSObject
 }
 
 func (em ExchangeMessage) ReadObjectData() (MessageObject, error) {

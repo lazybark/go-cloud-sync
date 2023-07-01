@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) processFilesystemEvent(event fse.FSEvent) {
+func (c *FSWClient) processFilesystemEvent(event proto.FSEvent) {
 	if _, buffered := c.ActionsBuffer[filepath.Join(event.Object.Path, event.Object.Name)]; buffered {
 		return
 	}
 	//c.extEvChannel <- event
 	//Process event with storage
-	if event.Action == fse.Create || event.Action == fse.Write {
+	if event.Action == proto.Create || event.Action == proto.Write {
 		obj, err := c.fp.ProcessObject(event.Object, true)
 		if err != nil {
 			c.extErc <- fmt.Errorf("[PROCESS EVENT][%s] processing error: %w", event.Action.String(), err)
@@ -24,14 +24,14 @@ func (c *FSWClient) processFilesystemEvent(event fse.FSEvent) {
 		if obj.Hash == "" && !obj.IsDir {
 			return
 		}
-		if event.Action == fse.Create && obj.IsDir {
+		if event.Action == proto.Create && obj.IsDir {
 			err = c.w.Add(c.fp.GetPathUnescaped(event.Object))
 			if err != nil {
 				c.extErc <- fmt.Errorf("[PROCESS EVENT][%s] adding watcher failed: %w", event.Action.String(), err)
 				return
 			}
 		}
-	} else if event.Action == fse.Remove {
+	} else if event.Action == proto.Remove {
 		c.w.RemoveIfExists(event.Object.Name)
 		dir, name, err := c.fp.ConvertPathName(event.Object)
 		if err != nil {

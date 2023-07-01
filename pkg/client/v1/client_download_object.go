@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) DownloadObject(obj fse.FSObject) {
+func (c *FSWClient) DownloadObject(obj proto.FSObject) {
 	pathUnescaped := filepath.Join(c.fp.UnescapePath(obj))
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
 

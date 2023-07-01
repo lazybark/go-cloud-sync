@@ -1,7 +1,4 @@
-//fse means filesystem events. This package stores interface for filesystem watcher that should
-//watch specified directory for changes and report back.
-
-package fse
+package proto
 
 import (
 	"encoding/json"

@@ -53,12 +53,12 @@ func (c *FSWClient) resyncOnce() {
 	for _, o := range created {
 		go c.PushObject(o)
 		//fmt.Println(o.Path, o.Name)
-		//go c.processFilesystemEvent(fse.FSEvent{Action: fse.Create, Object: o})
+		//go c.processFilesystemEvent(proto.FSEvent{Action: proto.Create, Object: o})
 	}
 	//fmt.Println("TO updated")
 	for _, o := range updated {
 		go c.PushObject(o)
 		//fmt.Println(o.Path, o.Name)
-		//go c.processFilesystemEvent(fse.FSEvent{Action: fse.Write, Object: o})
+		//go c.processFilesystemEvent(proto.FSEvent{Action: proto.Write, Object: o})
 	}
 }

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) Init(evc chan (fse.FSEvent), erc chan (error), login, pwd string) error {
+func (c *FSWClient) Init(evc chan (proto.FSEvent), erc chan (error), login, pwd string) error {
 	c.extEvChannel = evc
 	c.extErc = erc
 	c.ActionsBuffer = make(map[string]bool)

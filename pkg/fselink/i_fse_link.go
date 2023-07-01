@@ -3,7 +3,7 @@ package fselink
 import (
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
@@ -11,10 +11,10 @@ import (
 type SyncLinkClient interface {
 	Init(port int, addr, login, pwd string) error
 	//Break() error
-	GetObjList() ([]fse.FSObject, error)
-	DownloadObject(obj fse.FSObject, writeTo *os.File) error
-	PushObject(obj fse.FSObject, readFrom *os.File) error
-	DeleteObject(obj fse.FSObject) (err error)
+	GetObjList() ([]proto.FSObject, error)
+	DownloadObject(obj proto.FSObject, writeTo *os.File) error
+	PushObject(obj proto.FSObject, readFrom *os.File) error
+	DeleteObject(obj proto.FSObject) (err error)
 }
 
 // FSEServerPool is used by server to keep

@@ -7,7 +7,7 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/configs"
 	"github.com/lazybark/go-cloud-sync/pkg/client"
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
 //Basic client algorithm:
@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	evc := make(chan (fse.FSEvent))
+	evc := make(chan (proto.FSEvent))
 	erc := make(chan error)
 
 	go func() {

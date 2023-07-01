@@ -3,13 +3,11 @@ package proto
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 )
 
 type MessageFullSyncReply struct {
 	Success bool
-	Objects []fse.FSObject
+	Objects []FSObject
 }
 
 func (em ExchangeMessage) ReadFullSyncReply() (MessageFullSyncReply, error) {

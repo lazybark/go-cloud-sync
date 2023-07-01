@@ -6,11 +6,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (sc *LinkClient) PushObject(obj fse.FSObject, fileData *os.File) (err error) {
+func (sc *LinkClient) PushObject(obj proto.FSObject, fileData *os.File) (err error) {
 	link, err := NewClient()
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)

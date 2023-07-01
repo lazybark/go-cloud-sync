@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
 // FSWatcher is the object with methods to watch filesystem events (changes to FS struct) in
@@ -15,7 +15,7 @@ type FSWatcher struct {
 	w *fsnotify.Watcher
 
 	//evc is the channel to send notifications about all events in the filesystem
-	evc chan (fse.FSEvent)
+	evc chan (proto.FSEvent)
 
 	//erc is the channel to send notifications about errors
 	erc chan (error)
@@ -30,7 +30,7 @@ func NewWatcher() *FSWatcher {
 }
 
 // Init sets initial config to the Watcher
-func (fw *FSWatcher) Init(root string, evc chan (fse.FSEvent), erc chan (error)) error {
+func (fw *FSWatcher) Init(root string, evc chan (proto.FSEvent), erc chan (error)) error {
 	fw.root = root
 	fw.evc = evc
 	fw.erc = erc
@@ -64,24 +64,21 @@ func (fw *FSWatcher) Stop() error {
 	return nil
 }
 
-// ConvertFSNotifyEventToFSEvent converts events from fsnotify.Event into fse.FSEvent.
-// It fills only Action type and Object.Path. Other fields are left empty and meant to be filled
-// by reciever routine
-func ConvertFSNotifyEventToFSEvent(event fsnotify.Event) fse.FSEvent {
-	e := fse.FSEvent{}
+func ConvertFSNotifyEventToFSEvent(event fsnotify.Event) proto.FSEvent {
+	e := proto.FSEvent{}
 
 	if event.Op == fsnotify.Create {
-		e.Action = fse.Create
+		e.Action = proto.Create
 	} else if event.Op == fsnotify.Write {
-		e.Action = fse.Write
+		e.Action = proto.Write
 	} else if event.Op == fsnotify.Remove {
-		e.Action = fse.Remove
+		e.Action = proto.Remove
 	} else if event.Op == fsnotify.Rename {
-		e.Action = fse.Rename
+		e.Action = proto.Rename
 	} else if event.Op == fsnotify.Chmod {
-		e.Action = fse.Chmod
+		e.Action = proto.Chmod
 	} else {
-		e.Action = fse.NoAction
+		e.Action = proto.NoAction
 	}
 
 	e.Object.Path = event.Name
@@ -89,8 +86,6 @@ func ConvertFSNotifyEventToFSEvent(event fsnotify.Event) fse.FSEvent {
 	return e
 }
 
-// filesystemWatcherRoutine watches for events in fw.root folder and uses fw.evc & fw.erc channels
-// to notify clients
 func (fw *FSWatcher) filesystemWatcherRoutine() {
 	w := fw.w
 	done := make(chan bool)

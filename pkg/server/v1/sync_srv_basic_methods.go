@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan (fse.FSEvent), erc chan (error)) error {
+func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan (proto.FSEvent), erc chan (error)) error {
 	s.conf.root = root
 	s.conf.cacheRoot = cacheRoot
 	s.conf.host = host

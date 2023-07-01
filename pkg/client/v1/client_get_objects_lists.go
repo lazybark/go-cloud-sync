@@ -3,10 +3,10 @@ package v1
 import (
 	"fmt"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) GetServerObjList() (l []fse.FSObject, err error) {
+func (c *FSWClient) GetServerObjList() (l []proto.FSObject, err error) {
 	l, err = c.link.GetObjList()
 	if err != nil {
 		return l, fmt.Errorf("[GetServerObjList]: %w", err)
@@ -15,7 +15,7 @@ func (c *FSWClient) GetServerObjList() (l []fse.FSObject, err error) {
 	return
 }
 
-func (c *FSWClient) GetLocalObjects() (objs []fse.FSObject, err error) {
+func (c *FSWClient) GetLocalObjects() (objs []proto.FSObject, err error) {
 	objs, err = c.fp.ProcessDirectory(c.cfg.Root)
 	if err != nil {
 		err = fmt.Errorf("[DiffListWithServer]: %w", err)

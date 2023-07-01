@@ -4,15 +4,15 @@ import (
 	"sync"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
 
 type FSWClient struct {
 	w                  watcher.IFilesystemWatcher
-	extEvChannel       chan (fse.FSEvent)
-	evc                chan (fse.FSEvent)
+	extEvChannel       chan (proto.FSEvent)
+	evc                chan (proto.FSEvent)
 	extErc             chan (error)
 	erc                chan (error)
 	fp                 fp.Fileprocessor

@@ -1,4 +1,4 @@
-package fse
+package proto
 
 //FSAction is an action that was performed on a filesystem element
 type FSAction int

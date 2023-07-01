@@ -3,11 +3,11 @@ package v1
 import (
 	"path/filepath"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) GetDiffListWithServer(locObjs []fse.FSObject, srvObjs []fse.FSObject) (dld []fse.FSObject, crtd []fse.FSObject, updtd []fse.FSObject, err error) {
-	temp := make(map[string]fse.FSObject)
+func (c *FSWClient) GetDiffListWithServer(locObjs []proto.FSObject, srvObjs []proto.FSObject) (dld []proto.FSObject, crtd []proto.FSObject, updtd []proto.FSObject, err error) {
+	temp := make(map[string]proto.FSObject)
 
 	for _, o := range locObjs {
 		temp[filepath.Join(o.Path, o.Name)] = o

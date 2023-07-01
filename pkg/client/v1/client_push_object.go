@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (c *FSWClient) PushObject(obj fse.FSObject) {
+func (c *FSWClient) PushObject(obj proto.FSObject) {
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
 
 	if c.IsInActionBuffer(pathFullUnescaped) {

@@ -3,7 +3,7 @@ package fselink
 import (
 	"fmt"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
@@ -52,6 +52,6 @@ func (s *SyncServer) Stop() error {
 	return nil
 
 }
-func (s *SyncServer) NotifyClients(e fse.FSEvent) error {
+func (s *SyncServer) NotifyClients(e proto.FSEvent) error {
 	return nil
 }

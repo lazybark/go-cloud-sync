@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fse"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage/sqlitestorage"
 )
@@ -15,7 +15,7 @@ func main() {
 		log.Fatal(err)
 	}*/
 
-	evc := make(chan (fse.FSEvent))
+	evc := make(chan (proto.FSEvent))
 	erc := make(chan error)
 
 	go func() {

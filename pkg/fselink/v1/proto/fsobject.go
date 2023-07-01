@@ -1,4 +1,4 @@
-package fse
+package proto
 
 import (
 	"encoding/json"
