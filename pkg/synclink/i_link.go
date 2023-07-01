@@ -1,4 +1,4 @@
-package fselink
+package synclink
 
 import (
 	"os"

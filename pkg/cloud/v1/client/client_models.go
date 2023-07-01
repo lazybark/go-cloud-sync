@@ -1,10 +1,10 @@
-package v1
+package client
 
 import (
 	"sync"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	fselink "github.com/lazybark/go-cloud-sync/pkg/synclink"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink"
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
@@ -19,7 +19,7 @@ type FSWClient struct {
 	ActionsBuffer      map[string]bool
 	ActionsBufferMutex sync.RWMutex
 
-	link fselink.ISyncLinkClientV1
+	link synclink.ISyncLinkClientV1
 
 	cfg ClientConfig
 }

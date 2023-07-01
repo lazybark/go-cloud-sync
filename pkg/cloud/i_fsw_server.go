@@ -1,7 +1,7 @@
-package server
+package cloud
 
 import (
-	v1 "github.com/lazybark/go-cloud-sync/pkg/server/v1"
+	"github.com/lazybark/go-cloud-sync/pkg/cloud/v1/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 )
 
@@ -12,5 +12,5 @@ type IFSWServerV1 interface {
 }
 
 func NewServerV1(stor storage.IServerStorageV1) IFSWServerV1 {
-	return v1.NewServer(stor)
+	return server.NewServer(stor)
 }

@@ -1,4 +1,4 @@
-package v1
+package server
 
 import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
