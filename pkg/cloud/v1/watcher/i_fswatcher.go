@@ -1,9 +1,11 @@
 package watcher
 
-import "github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
+import (
+	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
+)
 
-//IFilesystemWatcher represents watcher that uses event (evc) and error (erc) channels to report all
-//changes in specified dir and its subdirs.
+// IFilesystemWatcher represents watcher that uses event (evc) and error (erc) channels to report all
+// changes in specified dir and its subdirs.
 type IFilesystemWatcherV1 interface {
 	//Init sets initial parameters for fs watcher
 	Init(root string, evc chan (proto.FSEvent), erc chan (error)) error
@@ -18,4 +20,8 @@ type IFilesystemWatcherV1 interface {
 	Add(dir string) error
 
 	RemoveIfExists(dir string)
+}
+
+func NewWatcherV1() IFilesystemWatcherV1 {
+	return NewWatcher()
 }

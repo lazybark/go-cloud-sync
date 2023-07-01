@@ -3,10 +3,10 @@ package server
 import (
 	"sync"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fp"
+	"github.com/lazybark/go-cloud-sync/pkg/cloud/v1/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
-	fselink "github.com/lazybark/go-cloud-sync/pkg/synclink"
-	gts "github.com/lazybark/go-tls-server/v3/server"
+	"github.com/lazybark/go-cloud-sync/pkg/synclink"
+	srv "github.com/lazybark/go-tls-server/v3/server"
 )
 
 type FSWServer struct {
@@ -21,13 +21,13 @@ type FSWServer struct {
 	extErc chan (error)
 	erc    chan (error)
 
-	srvMessChan chan *gts.Message
+	srvMessChan chan *srv.Message
 	srvErrChan  chan error
-	srvConnChan chan *gts.Connection
+	srvConnChan chan *srv.Connection
 
 	stor storage.IServerStorageV1
 
-	htsrv fselink.ISyncLinkServerV1
+	htsrv synclink.ISyncLinkServerV1
 
 	isActive bool
 }

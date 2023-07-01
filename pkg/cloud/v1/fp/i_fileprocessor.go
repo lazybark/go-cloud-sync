@@ -3,7 +3,6 @@ package fp
 import (
 	"os"
 
-	v1 "github.com/lazybark/go-cloud-sync/pkg/fp/v1"
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
@@ -19,5 +18,5 @@ type FileprocessorV1 interface {
 }
 
 func NewFPv1(escSymbol, root, cacheRoot string) FileprocessorV1 {
-	return v1.NewFileProcessorV1(escSymbol, root, cacheRoot)
+	return NewFileProcessorV1(escSymbol, root, cacheRoot)
 }

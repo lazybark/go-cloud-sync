@@ -3,10 +3,10 @@ package client
 import (
 	"sync"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fp"
+	"github.com/lazybark/go-cloud-sync/pkg/cloud/v1/fp"
+	"github.com/lazybark/go-cloud-sync/pkg/cloud/v1/watcher"
 	"github.com/lazybark/go-cloud-sync/pkg/synclink"
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
-	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
 
 type FSWClient struct {

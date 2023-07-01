@@ -1,4 +1,4 @@
-package v1
+package fp
 
 type FileProcessor struct {
 	escSymbol string

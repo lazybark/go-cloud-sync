@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fp"
+	"github.com/lazybark/go-cloud-sync/pkg/cloud/v1/fp"
 )
 
 func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, erc chan (error)) error {
