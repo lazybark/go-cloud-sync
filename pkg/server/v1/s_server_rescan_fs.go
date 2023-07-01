@@ -7,7 +7,7 @@ import (
 )
 
 func (s *FSWServer) rescanOnce() {
-	local, err := s.ReadLocalObjects()
+	local, err := s.readLocalObjects()
 	if err != nil {
 		s.extErc <- fmt.Errorf("[rescanOnce]%w", err)
 		return
@@ -21,7 +21,7 @@ func (s *FSWServer) rescanOnce() {
 	}
 	fmt.Println("Database refilled")
 }
-func (s *FSWServer) ReadLocalObjects() (objs []storage.FSObjectStored, err error) {
+func (s *FSWServer) readLocalObjects() (objs []storage.FSObjectStored, err error) {
 	local, err := s.fp.ProcessDirectory(s.conf.root)
 	if err != nil {
 		return nil, fmt.Errorf("[FSWATCHER][DiffListWithServer]: %w", err)
