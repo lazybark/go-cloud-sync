@@ -19,7 +19,7 @@ type FSWClient struct {
 	ActionsBuffer      map[string]bool
 	ActionsBufferMutex sync.RWMutex
 
-	link fselink.SyncLinkClient
+	link fselink.ISyncLinkClient
 
 	cfg ClientConfig
 }

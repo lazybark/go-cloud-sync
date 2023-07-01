@@ -7,7 +7,7 @@ import (
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
-type SyncLinkClient interface {
+type ISyncLinkClient interface {
 	Init(port int, addr, login, pwd string) error
 	//Break() error
 	GetObjList() ([]proto.FSObject, error)
@@ -16,7 +16,7 @@ type SyncLinkClient interface {
 	DeleteObject(obj proto.FSObject) (err error)
 }
 
-type SyncLinkServer interface {
+type ISyncLinkServer interface {
 	Init(chan (*gts.Message), chan (*gts.Connection), chan (error)) error
 	Listen(string, string) error
 	//Stop() error
