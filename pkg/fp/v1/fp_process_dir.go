@@ -2,7 +2,7 @@ package v1
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
@@ -27,7 +27,7 @@ func (f *FileProcessor) ProcessDirectory(path string) (objs []proto.FSObject, er
 }
 
 func (fs *FileProcessor) scanDir(path string) (objs []proto.FSObject, err error) {
-	contents, err := ioutil.ReadDir(path)
+	contents, err := os.ReadDir(path)
 	if err != nil {
 		return
 	}
