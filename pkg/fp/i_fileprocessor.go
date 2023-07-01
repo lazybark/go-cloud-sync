@@ -19,5 +19,5 @@ type FileprocessorV1 interface {
 }
 
 func NewFPv1(escSymbol, root, cacheRoot string) FileprocessorV1 {
-	return v1.NewFP(escSymbol, root, cacheRoot)
+	return v1.NewFileProcessorV1(escSymbol, root, cacheRoot)
 }
