@@ -19,7 +19,6 @@ type FSWServer struct {
 	connPoolMutex sync.RWMutex
 
 	extErc chan (error)
-	erc    chan (error)
 
 	srvMessChan chan *srv.Message
 	srvErrChan  chan error
@@ -38,7 +37,4 @@ type ServerConfig struct {
 	host      string
 	port      string
 	escSymbol string
-}
-
-type Client struct {
 }

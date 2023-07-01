@@ -43,7 +43,6 @@ func (s *FSWServer) Start() error {
 
 func (s *FSWServer) Stop() error {
 	close(s.extErc)
-	close(s.erc)
 
 	s.isActive = false
 	fmt.Println("Server stopped")
