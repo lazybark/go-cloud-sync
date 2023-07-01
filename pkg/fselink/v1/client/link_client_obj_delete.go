@@ -25,7 +25,7 @@ func (sc *LinkClient) DeleteObject(obj proto.FSObject) (err error) {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
 
-	maa, err := sc.Await()
+	maa, err := link.Await()
 	if err != nil {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
