@@ -68,7 +68,7 @@ func (sc *SyncClient) DeleteObject(obj fse.FSObject) (err error) {
 
 	link.SetAuthKey(sc.akey)
 
-	err = link.SendSyncMessage(proto.MessageDeleteObject{Object: obj}, proto.MessageTypeDeleteObject)
+	err = link.SendSyncMessage(proto.MessageObject{Object: obj}, proto.MessageTypeDeleteObject)
 	if err != nil {
 		return fmt.Errorf("[DeleteObject]%w", err)
 	}
@@ -107,7 +107,7 @@ func (sc *SyncClient) PushObject(obj fse.FSObject, fileData *os.File) (err error
 
 	link.SetAuthKey(sc.akey)
 
-	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypePushFile)
+	err = link.SendSyncMessage(proto.MessageObject{Object: obj}, proto.MessageTypePushFile)
 	if err != nil {
 		return fmt.Errorf("[PushObject]%w", err)
 	}
@@ -177,7 +177,7 @@ func (sc *SyncClient) DownloadObject(obj fse.FSObject, destFile *os.File) (err e
 
 	link.SetAuthKey(sc.akey)
 
-	err = link.SendSyncMessage(proto.MessageGetFile{Object: obj}, proto.MessageTypeGetFile)
+	err = link.SendSyncMessage(proto.MessageObject{Object: obj}, proto.MessageTypeGetFile)
 	if err != nil {
 		return fmt.Errorf("[DownloadObject]%w", err)
 	}

@@ -87,7 +87,7 @@ func (s *FSWServer) watcherRoutine() {
 						s.processFullSyncRequest(&c)
 
 					} else if m.Type == proto.MessageTypeGetFile {
-						var mu proto.MessageGetFile
+						var mu proto.MessageObject
 						err = fselink.UnpackMessage(m, proto.MessageTypeGetFile, &mu)
 						if err != nil {
 							s.extErc <- err
@@ -160,7 +160,7 @@ func (s *FSWServer) watcherRoutine() {
 						continue
 
 					} else if m.Type == proto.MessageTypePushFile {
-						var mu proto.MessagePushFile
+						var mu proto.MessageObject
 						err = fselink.UnpackMessage(m, proto.MessageTypePushFile, &mu)
 						if err != nil {
 							c.SendError(proto.ErrMessageReadingFailed)

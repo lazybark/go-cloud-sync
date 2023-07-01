@@ -28,15 +28,7 @@ type MessageFullSyncReply struct {
 	Objects []fse.FSObject
 }
 
-type MessageGetFile struct {
-	Object fse.FSObject
-}
-
-type MessagePushFile struct {
-	Object fse.FSObject
-}
-
-type MessageDeleteObject struct {
+type MessageObject struct {
 	Object fse.FSObject
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 func (s *FSWServer) processDelete(c *syncConnection, m proto.ExchangeMessage) {
-	var mu proto.MessageDeleteObject
+	var mu proto.MessageObject
 	err := fselink.UnpackMessage(m, proto.MessageTypeDeleteObject, &mu)
 	if err != nil {
 		c.SendError(proto.ErrMessageReadingFailed)
