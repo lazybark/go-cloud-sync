@@ -1,4 +1,4 @@
-package fselink
+package client
 
 import (
 	"encoding/json"
@@ -7,7 +7,15 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (sc *SyncClient) SendSyncMessage(payload any, mType proto.ExchangeMessageType) error {
+func (sc *LinkClient) SendByte(b []byte) (int, error) {
+	err := sc.c.SendByte(b)
+	if err != nil {
+		err = fmt.Errorf("[SendByte]: %w", err)
+	}
+	return len(b), err
+}
+
+func (sc *LinkClient) SendSyncMessage(payload any, mType proto.ExchangeMessageType) error {
 	plb, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("[sendSyncMessage]%w", err)

@@ -8,14 +8,13 @@ import (
 )
 
 // FSEClientLink is used by clients to connect to a server
-type FSEClientLink interface {
+type SyncLinkClient interface {
 	Init(port int, addr, login, pwd string) error
 	//Break() error
 	GetObjList() ([]fse.FSObject, error)
 	DownloadObject(obj fse.FSObject, writeTo *os.File) error
 	PushObject(obj fse.FSObject, readFrom *os.File) error
 	DeleteObject(obj fse.FSObject) (err error)
-	SendEvent(e fse.FSEvent) error
 }
 
 // FSEServerPool is used by server to keep

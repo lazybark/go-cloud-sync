@@ -5,7 +5,7 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/client"
 	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 )
 
@@ -18,7 +18,7 @@ func NewClient(cacheDir, root string) *FSWClient {
 
 	c.w = watcher.NewWatcher()
 	c.fp = fp.NewFPv1(",", root, cacheDir)
-	link, err := fselink.NewClient()
+	link, err := client.NewClient()
 	if err != nil {
 		log.Fatal(err)
 	}

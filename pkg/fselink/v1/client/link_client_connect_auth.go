@@ -1,4 +1,4 @@
-package fselink
+package client
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (sc *SyncClient) ConnectAndAuth() error {
+func (sc *LinkClient) ConnectAndAuth() error {
 	err := sc.c.DialTo(sc.serverAddr, sc.serverPort, `certs/cert.pem`)
 	if err != nil {
 		return fmt.Errorf("[ConnectAndAuth]%w", err)
