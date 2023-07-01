@@ -3,7 +3,7 @@ package fselink
 import (
 	"fmt"
 
-	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
 func (sc *SyncClient) ConnectAndAuth() error {

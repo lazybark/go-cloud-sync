@@ -1,7 +1,7 @@
 package v1
 
 import (
-	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
 func (s *FSWServer) processAuth(log string, pwd string, c *syncConnection) {

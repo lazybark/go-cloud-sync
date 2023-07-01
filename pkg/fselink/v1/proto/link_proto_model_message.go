@@ -1,4 +1,4 @@
-package v1
+package proto
 
 type ExchangeMessage struct {
 	Type    ExchangeMessageType

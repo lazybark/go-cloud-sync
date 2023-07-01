@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fse"
-	proto "github.com/lazybark/go-cloud-sync/pkg/fselink/proto/v1"
+	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-tls-server/v2/client"
 )
 
