@@ -20,7 +20,6 @@ func (sc *LinkClient) Init(port int, addr, login, pwd string) error {
 	sc.login = login
 	sc.pwd = pwd
 
-	fmt.Println("Connecting to server")
 	err := sc.ConnectAndAuth()
 	if err != nil {
 		return fmt.Errorf("[SyncClient][Init]%w", err)
