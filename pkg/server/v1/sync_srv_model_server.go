@@ -7,13 +7,11 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
-	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
 type FSWServer struct {
 	conf ServerConfig
-	w    watcher.IFilesystemWatcherV1
 
 	fp fp.FileprocessorV1
 

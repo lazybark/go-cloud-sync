@@ -19,12 +19,7 @@ func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan
 
 	s.fp = fp.NewFPv1(escSymbol, root, cacheRoot)
 
-	err := s.w.Init(root, s.extEvc, s.extErc)
-	if err != nil {
-		return fmt.Errorf("[INIT]: %w", err)
-	}
-
-	err = s.htsrv.Init(s.srvMessChan, s.srvConnChan, s.srvErrChan)
+	err := s.htsrv.Init(s.srvMessChan, s.srvConnChan, s.srvErrChan)
 	if err != nil {
 		return fmt.Errorf("[INIT]: %w", err)
 	}
@@ -42,19 +37,13 @@ func (s *FSWServer) Start() error {
 
 	go s.htsrv.Listen(s.conf.host, s.conf.port)
 	go s.watcherRoutine()
+
 	s.isActive = true
-	err := s.w.Start()
-	if err != nil {
-		return fmt.Errorf("[SERVER][START]%w", err)
-	}
+
 	return nil
 }
 
 func (s *FSWServer) Stop() error {
-	err := s.w.Stop()
-	if err != nil {
-		return fmt.Errorf("[STOP] can not stop watcher: %w", err)
-	}
 	close(s.extEvc)
 	close(s.extErc)
 	close(s.evc)

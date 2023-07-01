@@ -5,7 +5,6 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
-	"github.com/lazybark/go-cloud-sync/pkg/watcher"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
@@ -17,7 +16,6 @@ func NewServer(stor storage.IServerStorageV1) *FSWServer {
 	s.connPool = make(map[string]*syncConnection)
 	s.connPoolMutex = sync.RWMutex{}
 
-	s.w = watcher.NewWatcher()
 	s.stor = stor
 	s.htsrv = server.NewServer()
 
