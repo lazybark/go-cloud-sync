@@ -5,7 +5,6 @@ import (
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
 	"github.com/lazybark/go-cloud-sync/pkg/fselink"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/storage"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
@@ -19,8 +18,6 @@ type FSWServer struct {
 	//connPoolMutex controls connPool
 	connPoolMutex sync.RWMutex
 
-	extEvc chan (proto.FSEvent)
-	evc    chan (proto.FSEvent)
 	extErc chan (error)
 	erc    chan (error)
 

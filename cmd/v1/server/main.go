@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 	"github.com/lazybark/go-cloud-sync/pkg/server"
 	"github.com/lazybark/go-cloud-sync/pkg/storage/sqlitestorage"
 )
@@ -15,14 +14,7 @@ func main() {
 		log.Fatal(err)
 	}*/
 
-	evc := make(chan (proto.FSEvent))
 	erc := make(chan error)
-
-	go func() {
-		for event := range evc {
-			fmt.Println(event)
-		}
-	}()
 
 	go func() {
 		for err := range erc {
@@ -36,7 +28,7 @@ func main() {
 	}
 
 	w := server.NewServerV1(sqstor)
-	err = w.Init(`D:\filesystem_root_server`, `D:\server_cache`, `localhost`, `5555`, ",", evc, erc)
+	err = w.Init(`D:\filesystem_root_server`, `D:\server_cache`, `localhost`, `5555`, ",", erc)
 	if err != nil {
 		log.Fatal(err)
 	}

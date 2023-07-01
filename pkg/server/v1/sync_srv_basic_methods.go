@@ -5,16 +5,14 @@ import (
 	"strings"
 
 	"github.com/lazybark/go-cloud-sync/pkg/fp"
-	"github.com/lazybark/go-cloud-sync/pkg/fselink/v1/proto"
 )
 
-func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, evc chan (proto.FSEvent), erc chan (error)) error {
+func (s *FSWServer) Init(root, cacheRoot, host, port, escSymbol string, erc chan (error)) error {
 	s.conf.root = root
 	s.conf.cacheRoot = cacheRoot
 	s.conf.host = host
 	s.conf.port = port
 	s.conf.escSymbol = escSymbol
-	s.extEvc = evc
 	s.extErc = erc
 
 	s.fp = fp.NewFPv1(escSymbol, root, cacheRoot)
@@ -44,9 +42,7 @@ func (s *FSWServer) Start() error {
 }
 
 func (s *FSWServer) Stop() error {
-	close(s.extEvc)
 	close(s.extErc)
-	close(s.evc)
 	close(s.erc)
 
 	s.isActive = false
