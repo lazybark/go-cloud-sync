@@ -18,15 +18,15 @@ func (sc *LinkClient) SendByte(b []byte) (int, error) {
 func (sc *LinkClient) SendSyncMessage(payload any, mType proto.ExchangeMessageType) error {
 	plb, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("[sendSyncMessage]%w", err)
+		return fmt.Errorf("[SendSyncMessage]%w", err)
 	}
 	mess, err := json.Marshal(proto.ExchangeMessage{Type: mType, AuthKey: sc.akey, Payload: plb})
 	if err != nil {
-		return fmt.Errorf("[sendSyncMessage]%w", err)
+		return fmt.Errorf("[SendSyncMessage]%w", err)
 	}
 	_, err = sc.SendByte(mess)
 	if err != nil {
-		return fmt.Errorf("[sendSyncMessage]%w", err)
+		return fmt.Errorf("[SendSyncMessage]%w", err)
 	}
 	return nil
 }
