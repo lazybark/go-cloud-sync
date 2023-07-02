@@ -5,3 +5,4 @@ cmd/v1/client/filesystem_root
 cmd/v1/client/certs
 .idea
 *.db
+*.pem
