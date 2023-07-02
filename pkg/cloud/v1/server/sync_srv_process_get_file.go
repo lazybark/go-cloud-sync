@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
@@ -26,7 +25,7 @@ func (s *FSWServer) processGetFile(c *SyncConnection, m proto.ExchangeMessage) {
 
 	a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 
-	fileName := s.fp.GetPathUnescaped(a.Object)
+	pathFullUnescaped := s.fp.GetPathUnescaped(a.Object)
 	dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
 	if err != nil {
 		s.extErc <- err
@@ -38,11 +37,13 @@ func (s *FSWServer) processGetFile(c *SyncConnection, m proto.ExchangeMessage) {
 		return
 	}
 
-	fileData, err := os.Open(fileName)
+	fileData, err := s.fp.OpenToRead(pathFullUnescaped)
 	if err != nil {
 		c.SendError(proto.ErrFileReadingFailed)
+		s.extErc <- err
 		return
 	}
+	defer fileData.Close()
 
 	// TLS record size can be up to 16KB but some extra bytes may apply
 	// https://hpbn.co/transport-layer-security-tls/#optimize-tls-record-size
@@ -67,7 +68,6 @@ func (s *FSWServer) processGetFile(c *SyncConnection, m proto.ExchangeMessage) {
 			break
 		}
 	}
-	fileData.Close()
 
 	err = c.SendMessage(nil, proto.MessageTypeFileEnd)
 	if err != nil {
