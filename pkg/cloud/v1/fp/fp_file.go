@@ -63,3 +63,7 @@ func (f *File) Close() error {
 func (f *File) Remove() error {
 	return os.RemoveAll(f.file.Name())
 }
+
+func (f *File) Read(b []byte) (n int, err error) {
+	return f.file.Read(b)
+}

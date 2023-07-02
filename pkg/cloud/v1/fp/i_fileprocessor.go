@@ -1,8 +1,6 @@
 package fp
 
 import (
-	"os"
-
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
@@ -12,7 +10,7 @@ type FileprocessorV1 interface {
 	ProcessDirectory(path string) ([]proto.FSObject, error)
 	GetPathUnescaped(obj proto.FSObject) string
 	UnescapePath(obj proto.FSObject) string
-	OpenToRead(path string) (file *os.File, err error)
+	OpenToRead(path string) (file *File, err error)
 
 	NewEmptyCache(obj proto.FSObject) (file *File, err error)
 	ReplaceFromCache(file *File) error
