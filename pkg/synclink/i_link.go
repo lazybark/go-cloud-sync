@@ -11,7 +11,8 @@ import (
 type ISyncLinkClientV1 interface {
 	Init(port int, addr, login, pwd string) error
 	NewConnectionInSession() (*client.LinkClient, error)
-	GetObjList() ([]proto.FSObject, error)
+	Await() (proto.ExchangeMessage, error)
+	SendSyncMessage(payload any, mType proto.ExchangeMessageType) error
 	//DownloadObject(obj proto.FSObject, writeTo *os.File) error
 	PushObject(obj proto.FSObject, readFrom *os.File) error
 }
