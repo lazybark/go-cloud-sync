@@ -40,11 +40,7 @@ func (c *FSWClient) processFilesystemEvent(event proto.FSEvent) {
 		}
 		event.Object.Path = dir
 		event.Object.Name = name
-		err = c.link.DeleteObject(event.Object)
-		if err != nil {
-			c.extErc <- fmt.Errorf("[PROCESS EVENT][%s]: %w", event.Action.String(), err)
-			return
-		}
+		go c.DeleteObject(event.Object)
 	}
 
 }

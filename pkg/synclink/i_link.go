@@ -14,7 +14,6 @@ type ISyncLinkClientV1 interface {
 	GetObjList() ([]proto.FSObject, error)
 	//DownloadObject(obj proto.FSObject, writeTo *os.File) error
 	PushObject(obj proto.FSObject, readFrom *os.File) error
-	DeleteObject(obj proto.FSObject) (err error)
 }
 
 type ISyncLinkServerV1 interface {

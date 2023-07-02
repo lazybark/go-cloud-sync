@@ -27,3 +27,7 @@ func (sc *LinkClient) Init(port int, addr, login, pwd string) error {
 
 	return nil
 }
+
+func (sc *LinkClient) Close() error {
+	return sc.c.Close()
+}
