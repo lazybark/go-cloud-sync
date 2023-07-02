@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
@@ -17,15 +15,6 @@ type Object struct {
 	Size        int64
 	UpdatedAt   time.Time
 	IsProcessed bool
-}
-
-func (o Object) JSON() ([]byte, error) {
-	ebg, err := json.Marshal(o)
-	if err != nil {
-		return ebg, fmt.Errorf("[FSObject->JSON] %w", err)
-	}
-
-	return ebg, nil
 }
 
 func (o Object) ToProtoObject() proto.FSObject {

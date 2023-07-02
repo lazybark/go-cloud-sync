@@ -19,10 +19,8 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 	}
 
 	a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
-	pathUnescaped := filepath.Join(s.fp.UnescapePath(a.Object))
 	pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(a.Object))
 
-	//fileName := s.fp.GetPathUnescaped(mu.Object)
 	dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
 	if err != nil && err != storage.ErrNotExists {
 		c.SendError(proto.ErrInternalServerError)
@@ -87,13 +85,12 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 		return
 	}
 
-	destFile, err := s.fp.CreateFileInCache()
+	file, err := s.fp.NewEmptyCache(a.Object)
 	if err != nil {
 		s.extErc <- err
 		c.SendError(proto.ErrInternalServerError)
 		return
 	}
-	//HERE WE SHOULD WAIT FOR FILE PARTS: intercept all connection messages until error or filebytes ended
 	for !c.IsClosed() {
 		m, err := c.Await()
 		if err != nil {
@@ -113,7 +110,7 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 				s.extErc <- err
 				return
 			}
-			_, err = destFile.Write(a.Payload)
+			_, err = file.Write(a.Payload)
 			if err != nil {
 				s.extErc <- err
 				return
@@ -127,29 +124,21 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 		}
 	}
 
-	destFile.Close()
-
-	if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
-		s.extErc <- err
-		err = s.fp.DeleteFileInCache(destFile.Name())
-		if err != nil {
-			s.extErc <- err
-		}
-		return
-	}
-	err = os.Rename(destFile.Name(), pathFullUnescaped)
-	if err != nil {
-		s.extErc <- err
-		err = s.fp.DeleteFileInCache(destFile.Name())
-		if err != nil {
-			s.extErc <- err
-		}
-		return
-	}
-	err = os.Chtimes(pathFullUnescaped, a.Object.UpdatedAt, a.Object.UpdatedAt)
+	err = file.Close()
 	if err != nil {
 		s.extErc <- err
 		c.SendError(proto.ErrInternalServerError)
+		return
+	}
+
+	err = s.fp.ReplaceFromCache(file)
+	if err != nil {
+		s.extErc <- err
+		c.SendError(proto.ErrInternalServerError)
+		err = file.Remove()
+		if err != nil {
+			s.extErc <- err
+		}
 		return
 	}
 

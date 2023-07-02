@@ -2,14 +2,12 @@ package client
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
 func (c *FSWClient) DownloadObject(obj proto.FSObject) {
-	pathUnescaped := filepath.Join(c.fp.UnescapePath(obj))
 	pathFullUnescaped := filepath.Join(c.fp.GetPathUnescaped(obj))
 
 	if c.IsInActionBuffer(pathFullUnescaped) {
@@ -21,47 +19,73 @@ func (c *FSWClient) DownloadObject(obj proto.FSObject) {
 	defer c.RemoveFromActionBuffer(pathFullUnescaped)
 
 	//Create file in cache
-	file, err := c.fp.CreateFileInCache()
+	file, err := c.fp.NewEmptyCache(obj)
 	if err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
+		c.extErc <- fmt.Errorf("[DownloadObject]: %w", err)
 		return
 	}
-	fmt.Println(file.Name())
-	fmt.Println(pathUnescaped)
-	fmt.Println(pathFullUnescaped)
-	//Downloading object to cache
-	err = c.link.DownloadObject(obj, file)
+
+	newConn, err := c.link.NewConnectionInSession()
 	if err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
-		file.Close()
-		err = c.fp.DeleteFileInCache(file.Name())
+		c.extErc <- fmt.Errorf("[DownloadObject]: %w", err)
+		return
+	}
+
+	err = newConn.SendSyncMessage(proto.MessageObject{Object: obj}, proto.MessageTypeGetFile)
+	if err != nil {
+		c.extErc <- fmt.Errorf("[DownloadObject]: %w", err)
+		return
+	}
+
+	var maa proto.ExchangeMessage
+	for {
+		maa, err = newConn.Await()
 		if err != nil {
-			c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
+			c.extErc <- fmt.Errorf("[DownloadObject]: %w", err)
+			return
+		}
+		if maa.Type == proto.MessageTypeError {
+			a, err := maa.ReadError()
+			if err != nil {
+				c.extErc <- fmt.Errorf("[DownloadObject]: %w", err)
+				return
+			}
+			c.extErc <- fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
+			return
+		} else if maa.Type == proto.MessageTypeFileParts {
+			a, err := maa.ReadFilePart()
+			if err != nil {
+				c.extErc <- fmt.Errorf("[DownloadObject]%w", err)
+				return
+			}
+			_, err = file.Write(a.Payload)
+			if err != nil {
+				c.extErc <- fmt.Errorf("[DownloadObject]%w", err)
+				return
+			}
+
+		} else if maa.Type == proto.MessageTypeFileEnd {
+			break
+		} else {
+			c.extErc <- fmt.Errorf("[DownloadObject] unexpected answer type '%s'", maa.Type)
+			return
+		}
+	}
+
+	err = file.Close()
+	if err != nil {
+		c.extErc <- err
+		return
+	}
+
+	err = c.fp.ReplaceFromCache(file)
+	if err != nil {
+		c.extErc <- err
+		err = file.Remove()
+		if err != nil {
+			c.extErc <- err
 		}
 		return
-	}
-	file.Close()
-	//Moving from cache to real place
-	if err := os.MkdirAll(pathUnescaped, os.ModePerm); err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
-		err = c.fp.DeleteFileInCache(file.Name())
-		if err != nil {
-			c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
-		}
-		return
-	}
-	err = os.Rename(file.Name(), pathFullUnescaped)
-	if err != nil {
-		c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
-		err = c.fp.DeleteFileInCache(file.Name())
-		if err != nil {
-			c.extErc <- fmt.Errorf("[DOWNLOAD TO CACHE]: %w", err)
-		}
-		return
-	}
-	err = os.Chtimes(pathFullUnescaped, obj.UpdatedAt, obj.UpdatedAt)
-	if err != nil {
-		fmt.Println(err)
 	}
 }
 

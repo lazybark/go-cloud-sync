@@ -12,9 +12,10 @@ type FileprocessorV1 interface {
 	ProcessDirectory(path string) ([]proto.FSObject, error)
 	GetPathUnescaped(obj proto.FSObject) string
 	UnescapePath(obj proto.FSObject) string
-	CreateFileInCache() (file *os.File, err error)
-	DeleteFileInCache(path string) (err error)
 	OpenToRead(path string) (file *os.File, err error)
+
+	NewEmptyCache(obj proto.FSObject) (file *File, err error)
+	ReplaceFromCache(file *File) error
 }
 
 func NewFPv1(escSymbol, root, cacheRoot string) FileprocessorV1 {
