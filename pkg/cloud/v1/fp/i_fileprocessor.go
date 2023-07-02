@@ -14,6 +14,7 @@ type FileprocessorV1 interface {
 
 	NewEmptyCache(obj proto.FSObject) (file *File, err error)
 	ReplaceFromCache(file *File) error
+	Remove(obj proto.FSObject) error
 }
 
 func NewFPv1(escSymbol, root, cacheRoot string) FileprocessorV1 {

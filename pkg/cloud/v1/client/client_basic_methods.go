@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"time"
+	"path/filepath"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
@@ -37,8 +37,54 @@ func (c *FSWClient) Start() error {
 	if err != nil {
 		return fmt.Errorf("[SYNC][START] starting watcher: %w", err)
 	}
-	go c.resyncRoutine(time.Minute)
+	//go c.resyncRoutine(time.Minute)
+	err = c.link.SendSyncMessage(nil, proto.MessageTypeSyncStart)
+	if err != nil {
+		return fmt.Errorf("[SYNC][START]%w", err)
+	}
 	fmt.Println("Client started")
+
+	var maa proto.ExchangeMessage
+	var pathFullUnescaped string
+	for {
+		maa, err = c.link.Await()
+		if err != nil {
+			return fmt.Errorf("[SYNC][START]%w", err)
+		}
+		if maa.Type == proto.MessageTypeError {
+			a, err := maa.ReadError()
+			if err != nil {
+				c.extErc <- fmt.Errorf("[SYNC][START]%w", err)
+			}
+			c.extErc <- fmt.Errorf("sync error #%d: %s", a.ErrorCode, a.Error)
+		} else if maa.Type == proto.MessageTypeSyncEvent {
+			a, err := maa.ReadSyncEvent()
+			if err != nil {
+				c.extErc <- fmt.Errorf("[SYNC][START]%w", err)
+			}
+
+			pathFullUnescaped = filepath.Join(c.fp.GetPathUnescaped(a.Object))
+			if c.IsInActionBuffer(pathFullUnescaped) {
+				continue
+			}
+
+			fmt.Println(a.Object, a.Event)
+			if a.Event == proto.Remove {
+				c.AddToActionBuffer(pathFullUnescaped)
+				err = c.fp.Remove(a.Object)
+				if err != nil {
+					c.extErc <- fmt.Errorf("[SYNC][START]%w", err)
+				}
+				c.RemoveFromActionBuffer(pathFullUnescaped)
+			} else if a.Event == proto.Create {
+				go c.DownloadObject(a.Object)
+			} else if a.Event == proto.Write {
+				go c.DownloadObject(a.Object)
+			}
+		} else {
+			c.extErc <- fmt.Errorf("[SYNC]unexpected answer type '%s'", maa.Type)
+		}
+	}
 
 	return nil
 }

@@ -24,4 +24,5 @@ func (s *FSWServer) processAuth(log string, pwd string, c *SyncConnection) {
 		return
 	}
 	c.clientTokenHash = hash
+	c.basicSession = true //To notify stat routines
 }

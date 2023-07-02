@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 
-	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 	gts "github.com/lazybark/go-tls-server/v3/server"
 )
 
@@ -40,7 +39,4 @@ func (s *LinkServer) Listen(addr, port string) error {
 func (s *LinkServer) Stop() error {
 	return nil
 
-}
-func (s *LinkServer) NotifyClients(e proto.FSEvent) error {
-	return nil
 }

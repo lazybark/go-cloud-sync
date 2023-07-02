@@ -52,4 +52,7 @@ func (s *FSWServer) processDelete(c *SyncConnection, m proto.ExchangeMessage) {
 	if err != nil {
 		s.extErc <- err
 	}
+
+	//Now notify other clients for this user
+	go s.notifyClients(a.Object, proto.Remove, c.ID(), c.uid)
 }

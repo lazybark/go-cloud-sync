@@ -9,6 +9,10 @@ import (
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
 
+func (fp *FileProcessor) Remove(obj proto.FSObject) error {
+	return os.RemoveAll(filepath.Join(fp.GetPathUnescaped(obj)))
+}
+
 func (fp *FileProcessor) NewEmptyCache(obj proto.FSObject) (*File, error) {
 	u, err := uuid.NewV4()
 	if err != nil {

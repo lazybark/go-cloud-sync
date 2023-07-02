@@ -8,7 +8,7 @@ import (
 )
 
 func (c *FSWClient) processFilesystemEvent(event proto.FSEvent) {
-	if _, buffered := c.ActionsBuffer[filepath.Join(event.Object.Path, event.Object.Name)]; buffered {
+	if c.IsInActionBuffer(filepath.Join(c.fp.GetPathUnescaped(event.Object))) {
 		return
 	}
 	//c.extEvChannel <- event

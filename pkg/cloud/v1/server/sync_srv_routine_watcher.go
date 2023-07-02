@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 )
@@ -20,7 +21,7 @@ func (s *FSWServer) watcherRoutine() {
 				return
 			}
 			//Add connection to pool to be able to control it after
-			c := SyncConnection{tlsConnection: connection}
+			c := SyncConnection{tlsConnection: connection, sendMutex: &sync.Mutex{}}
 			s.addToPool(&c)
 
 			go func() {
@@ -55,6 +56,10 @@ func (s *FSWServer) watcherRoutine() {
 					} else if m.Type == proto.MessageTypeFullSyncRequest {
 
 						s.processFullSyncRequest(&c)
+
+					} else if m.Type == proto.MessageTypeSyncStart {
+
+						s.processSyncStart(&c)
 
 					} else if m.Type == proto.MessageTypeGetFile {
 

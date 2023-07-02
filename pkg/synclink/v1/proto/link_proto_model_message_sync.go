@@ -23,3 +23,22 @@ func (em ExchangeMessage) ReadFullSyncReply() (MessageFullSyncReply, error) {
 
 	return m, nil
 }
+
+type MessageSyncEvent struct {
+	Object FSObject
+	Event  FSAction
+}
+
+func (em ExchangeMessage) ReadSyncEvent() (MessageSyncEvent, error) {
+	var m MessageSyncEvent
+	if em.Type != MessageTypeSyncEvent {
+		return m, fmt.Errorf("[ExchangeMessage][ReadSyncEvent] unexpected message type '%s'", em.Type)
+	}
+
+	err := json.Unmarshal(em.Payload, &m)
+	if err != nil {
+		return m, fmt.Errorf("[ExchangeMessage][ReadSyncEvent] %w", err)
+	}
+
+	return m, nil
+}

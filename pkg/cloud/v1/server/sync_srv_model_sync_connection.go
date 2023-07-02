@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/lazybark/go-cloud-sync/pkg/synclink/v1/proto"
 	"github.com/lazybark/go-tls-server/v3/server"
@@ -11,7 +12,13 @@ import (
 type SyncConnection struct {
 	uid             string
 	clientTokenHash string
-	tlsConnection   *server.Connection
+	sendEvents      bool
+	basicSession    bool
+
+	//sendMutex makes sure that messages will be written in the specific connection in order.
+	//
+	sendMutex     *sync.Mutex
+	tlsConnection *server.Connection
 }
 
 func (sc *SyncConnection) Await() (proto.ExchangeMessage, error) {
@@ -33,6 +40,9 @@ func (sc *SyncConnection) IsClosed() bool {
 }
 
 func (sc *SyncConnection) Close() {
+	//HERE WILL BE STAT DATA for server frontend. In case sc.basicSession == true, we set session as
+	//done.
+	//And we delete all connection with same token after this one is closed
 	sc.tlsConnection.Close()
 }
 
@@ -45,10 +55,14 @@ func (sc *SyncConnection) SendMessage(payload any, mType proto.ExchangeMessageTy
 	if err != nil {
 		return fmt.Errorf("[SendMessage] %w", err)
 	}
+
+	sc.sendMutex.Lock()
+	defer sc.sendMutex.Unlock()
 	_, err = sc.tlsConnection.SendByte(mess)
 	if err != nil {
 		return fmt.Errorf("[SendMessage] %w", err)
 	}
+
 	return nil
 }
 
@@ -73,4 +87,27 @@ func (s *FSWServer) remFromPool(c *SyncConnection) {
 	s.connPoolMutex.Lock()
 	delete(s.connPool, c.ID())
 	s.connPoolMutex.Unlock()
+}
+
+func (s *FSWServer) notifyClients(o proto.FSObject, e proto.FSAction, sourceCID string, sourceUID string) {
+	fmt.Println(e)
+	o.Path = s.ExtractOwnerFromPath(o.Path, sourceUID)
+	for cid, c := range s.connPool {
+		if !c.sendEvents {
+			continue
+		}
+		//Ignore same connection
+		if sourceCID == cid {
+			continue
+		}
+		//Ignore other users
+		if c.uid != sourceUID {
+			continue
+		}
+		err := c.SendMessage(proto.MessageSyncEvent{Object: o, Event: e}, proto.MessageTypeSyncEvent)
+		if err != nil {
+			s.extErc <- err
+			return
+		}
+	}
 }

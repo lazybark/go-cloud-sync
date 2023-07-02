@@ -13,7 +13,7 @@ const (
 
 	MessageTypeAuthReq
 	MessageTypeAuthAns
-	MessageTypeEvent
+	MessageTypeSyncEvent
 	MessageTypeFullSyncRequest
 	MessageTypeFullSyncReply
 	MessageTypeError
@@ -24,6 +24,7 @@ const (
 	MessageTypeFileEnd
 	MessageTypeClose
 	MessageTypeDeleteObject
+	MessageTypeSyncStart
 
 	message_type_end
 )
@@ -32,7 +33,7 @@ func (t ExchangeMessageType) String() string {
 	ts := [...]string{
 		"MessageTypeAuthReq",
 		"MessageTypeAuthAns",
-		"MessageTypeEvent",
+		"MessageTypeSyncEvent",
 		"MessageTypeFullSyncRequest",
 		"MessageTypeFullSyncReply",
 		"MessageTypeError",
@@ -43,6 +44,7 @@ func (t ExchangeMessageType) String() string {
 		"MessageTypeFileEnd",
 		"MessageTypeClose",
 		"MessageTypeDeleteObject",
+		"MessageTypeSyncStart",
 	}
 
 	if t <= message_type_start || t >= message_type_end {

@@ -20,6 +20,7 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 
 	a.Object.Path = strings.ReplaceAll(a.Object.Path, "?ROOT_DIR?", "?ROOT_DIR?,"+c.uid)
 	pathFullUnescaped := filepath.Join(s.fp.GetPathUnescaped(a.Object))
+	action := proto.Create
 
 	dbObj, err := s.stor.GetObject(a.Object.Path, a.Object.Name)
 	if err != nil && err != storage.ErrNotExists {
@@ -29,6 +30,7 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 	}
 	//If object does not exist yet
 	if dbObj.ID != 0 {
+		action = proto.Write
 		err = s.stor.LockObject(a.Object.Path, a.Object.Name)
 		if err != nil {
 			s.extErc <- err
@@ -166,6 +168,10 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 	}
 
 	c.Close()
+
+	//Now notify other clients for this user
+	go s.notifyClients(a.Object, action, c.ID(), c.uid)
+
 	if dbObj.ID != 0 {
 		err = s.stor.UnLockObject(a.Object.Path, a.Object.Name)
 		if err != nil {
@@ -174,5 +180,5 @@ func (s *FSWServer) processPushFile(c *SyncConnection, m proto.ExchangeMessage) 
 			return
 		}
 	}
-	fmt.Println("DOWNLOADED FILE")
+
 }
