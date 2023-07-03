@@ -47,6 +47,9 @@ func (sc *SyncConnection) Close() {
 }
 
 func (sc *SyncConnection) SendMessage(payload any, mType proto.ExchangeMessageType) error {
+	if sc.IsClosed() {
+		return nil
+	}
 	plb, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("[SendMessage] %w", err)
@@ -90,7 +93,7 @@ func (s *FSWServer) remFromPool(c *SyncConnection) {
 }
 
 func (s *FSWServer) notifyClients(o proto.FSObject, e proto.FSAction, sourceCID string, sourceUID string) {
-	fmt.Println(e)
+	fmt.Println(e, sourceCID)
 	o.Path = s.ExtractOwnerFromPath(o.Path, sourceUID)
 	for cid, c := range s.connPool {
 		if !c.sendEvents {
