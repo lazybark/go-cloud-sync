@@ -1,5 +1,7 @@
 package client
 
+import "fmt"
+
 func (c *FSWClient) IsInActionBuffer(object string) bool {
 	c.ActionsBufferMutex.Lock()
 	_, yes := c.ActionsBuffer[object]
@@ -8,6 +10,7 @@ func (c *FSWClient) IsInActionBuffer(object string) bool {
 }
 
 func (c *FSWClient) AddToActionBuffer(object string) {
+	fmt.Println("buffer", object)
 	c.ActionsBufferMutex.Lock()
 	c.ActionsBuffer[object] = true
 	c.ActionsBufferMutex.Unlock()
